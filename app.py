@@ -260,22 +260,36 @@ def main():
                         else:
                             st.warning("⚠️ No audio found in video (skipping transcription)")
                         
-                        # Phase 3: Extract frames
+                        # Phase 3: Prepare streaming frame extraction
                         update_phases(2)
                         processor = VideoProcessor()
                         processor.load_video(video_path, fps=fps)
                         
-                        frames = processor.extract_frames()
-                        st.success(f"✅ Extracted {len(frames)} frames at {fps} FPS")
+                        # Calculate estimated total batches for progress tracking
+                        # Use duration * fps to get actual sampled frames (not total raw frames)
+                        import math
+                        if processor.duration and processor.duration > 0:
+                            estimated_sampled_frames = processor.duration * fps
+                            estimated_total_batches = math.ceil(estimated_sampled_frames / batch_size)
+                        else:
+                            estimated_total_batches = None  # Unknown, will track incrementally
                         
-                        # Update stage after successful frame extraction
-                        db.update_stage(job_id, 'frames_extracted')
+                        st.info(f"📊 Preparing to extract frames at {fps} FPS (estimated {estimated_total_batches} batches)" if estimated_total_batches else f"📊 Preparing to extract frames at {fps} FPS")
                         
-                        # Phase 4: Analyze frames
+                        # Initialize progress tracking
+                        if estimated_total_batches:
+                            db.update_progress(job_id, 0, estimated_total_batches)
+                        
+                        # Phase 4: Analyze frames using streaming batches
                         update_phases(3)
                         batch_processor = FrameBatchProcessor(batch_size=batch_size)
-                        batches = batch_processor.create_batches(frames)
-                        db.update_progress(job_id, 0, len(batches))
+                        
+                        # Create streaming frame iterator
+                        frame_iterator = processor.iter_frames_streaming()
+                        
+                        # Track if any frames were extracted
+                        frames_extracted_flag = False
+                        total_frames_processed = 0
                         
                         # Get selected profile
                         profile_manager = ProfileManager()
@@ -290,19 +304,27 @@ def main():
                         # Initialize GPT-5 client
                         gpt5 = GPT5Client(api_key=api_key)
                         
-                        # Process batches concurrently (30 at a time for Tier 4 limits)
+                        # Process batches using streaming chunks (30 at a time for Tier 4 limits)
                         progress_bar = st.progress(0)
                         status_text = st.empty()
                         
                         chunk_size = 30
-                        total_batches = len(batches)
                         completed_batches = 0
+                        chunk_index = 0
                         
-                        for chunk_start in range(0, total_batches, chunk_size):
-                            chunk_end = min(chunk_start + chunk_size, total_batches)
-                            chunk_batches = batches[chunk_start:chunk_end]
+                        # Process streaming chunked batches
+                        for chunk_batches in batch_processor.iter_chunked_batches(frame_iterator, chunk_size=chunk_size):
+                            chunk_index += 1
+                            chunk_start = completed_batches
+                            chunk_end = chunk_start + len(chunk_batches)
                             
-                            status_text.text(f"Analyzing batches {chunk_start+1}-{chunk_end} concurrently...")
+                            # Mark frames_extracted after first batch
+                            if not frames_extracted_flag and len(chunk_batches) > 0:
+                                db.update_stage(job_id, 'frames_extracted')
+                                frames_extracted_flag = True
+                                st.success(f"✅ Started extracting frames (streaming)")
+                            
+                            status_text.text(f"Analyzing batches {chunk_start+1}-{chunk_end} concurrently (chunk {chunk_index})...")
                             
                             # Capture current context for this chunk
                             current_context = gpt5.context_state
@@ -326,7 +348,6 @@ def main():
                                 
                                 try:
                                     # Timeout for each chunk (30 batches * 120s per batch = 3600s max)
-                                    # Add some buffer for concurrency
                                     chunk_timeout = 3600  # 1 hour max per chunk
                                     for future in as_completed(futures, timeout=chunk_timeout):
                                         batch_idx, narrative, events = future.result(timeout=120)  # 2 min per batch result
@@ -337,8 +358,15 @@ def main():
                                         
                                         batch_results.append((batch_idx, narrative, events))
                                         completed_batches += 1
-                                        progress_bar.progress(completed_batches / total_batches)
-                                        db.update_progress(job_id, completed_batches)
+                                        total_frames_processed += len(chunk_batches[futures[future]])
+                                        
+                                        # Update progress
+                                        if estimated_total_batches:
+                                            progress_bar.progress(min(1.0, completed_batches / estimated_total_batches))
+                                            db.update_progress(job_id, completed_batches, estimated_total_batches)
+                                        else:
+                                            # Unknown total, just show completed count
+                                            db.update_progress(job_id, completed_batches, completed_batches)
                                 except TimeoutError:
                                     st.error(f"❌ Batch processing timed out. Some frames took too long to analyze.")
                                     raise Exception("Batch processing timeout - frames analysis took too long")
@@ -347,6 +375,11 @@ def main():
                             batch_results.sort(key=lambda x: x[0])
                             for _, narrative, events in batch_results:
                                 gpt5.update_context(narrative, events)
+                        
+                        # If no frames were extracted, warn but don't fail
+                        if not frames_extracted_flag:
+                            st.warning("⚠️ No frames were extracted from video")
+                            db.update_stage(job_id, 'frames_extracted')
                         
                         status_text.success("✅ Frame analysis complete!")
                         transcript = gpt5.get_full_transcript()

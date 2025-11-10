@@ -438,3 +438,47 @@ class FrameBatchProcessor:
             batches.append(batch)
         return batches
     
+    def iter_batches(self, frame_iterator: Iterator[dict]) -> Iterator[List[dict]]:
+        """
+        Create batches from a streaming frame iterator without loading all frames into memory.
+        
+        Args:
+            frame_iterator: Iterator yielding frame metadata dictionaries
+            
+        Yields:
+            Frame batches of size batch_size
+        """
+        batch = []
+        for frame in frame_iterator:
+            batch.append(frame)
+            if len(batch) >= self.batch_size:
+                yield batch
+                batch = []
+        
+        # Yield final partial batch if any frames remain
+        if batch:
+            yield batch
+    
+    def iter_chunked_batches(self, frame_iterator: Iterator[dict], chunk_size: int = 30) -> Iterator[List[List[dict]]]:
+        """
+        Create chunks of batches from a streaming frame iterator for concurrent processing.
+        Each chunk contains up to chunk_size batches.
+        
+        Args:
+            frame_iterator: Iterator yielding frame metadata dictionaries
+            chunk_size: Number of batches per chunk (default 30 for Tier 4 concurrency)
+            
+        Yields:
+            Chunks of batches (List of Lists of frame dicts)
+        """
+        chunk = []
+        for batch in self.iter_batches(frame_iterator):
+            chunk.append(batch)
+            if len(chunk) >= chunk_size:
+                yield chunk
+                chunk = []
+        
+        # Yield final partial chunk if any batches remain
+        if chunk:
+            yield chunk
+    

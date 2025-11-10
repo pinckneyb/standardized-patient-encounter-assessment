@@ -90,6 +90,19 @@ The system employs a sophisticated three-pass analysis approach:
 ## Recent Changes (November 2025)
 
 ### Latest Updates (November 10, 2025)
+- **Memory-Efficient Streaming Frame Extraction**: Completely refactored video processing to handle 10-15 minute videos without memory overload
+  - **Streaming Architecture**: `iter_frames_streaming()` yields frames one at a time instead of loading all into memory
+  - **720p Resolution Cap**: FFmpeg subprocess with `-vf 'fps={fps},scale=\'min(1280,iw)\':-2'` caps frame width at 1280px
+  - **Memory Footprint**: Only ~90 frames in memory at once (chunk_size * batch_size) vs 800+ frames (2-3GB) previously
+  - **JPEG Streaming**: Parses JPEG frames from FFmpeg stdout using SOI/EOI markers for efficient processing
+  - **OpenCV Fallback**: `_iter_frames_opencv()` provides same streaming + resolution cap if FFmpeg fails
+  - **Streaming Batch Processing**: `iter_chunked_batches()` yields chunks of batches for concurrent processing
+  - **Accurate Progress Tracking**: Uses `duration * fps / batch_size` to estimate correct batch count (not raw frame total)
+  - **Production-Ready**: Tested and verified to prevent crashes on 10-15 minute standardized patient encounter videos
+- **Fixed Package Conflicts**: Removed wrong `ffmpeg` package from requirements.txt that caused import errors
+  - Only `ffmpeg-python>=0.2.0` is installed for Python bindings
+  - FFmpeg CLI subprocess used for reliable video processing
+  - Removed duplicate package entries
 - **Comprehensive Timeout Handling**: Added timeout protection for all OpenAI API calls to prevent indefinite hangs
   - GPT-5 API client: 120-second timeout for frame analysis, narrative, and assessment (httpx.Timeout)
   - OpenAI Whisper transcription: 180-second timeout for audio transcription
