@@ -1,0 +1,17 @@
+[server]
+port = 5000
+address = "0.0.0.0"
+headless = true
+maxUploadSize = 2048
+enableCORS = false
+enableXsrfProtection = false
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = true
+
+[runner]
+fastReruns = true

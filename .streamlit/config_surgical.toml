@@ -1,0 +1,14 @@
+[server]
+port = 5001
+address = "0.0.0.0"
+headless = true
+maxUploadSize = 2048
+
+[browser]
+gatherUsageStats = false
+serverAddress = "0.0.0.0"
+serverPort = 5001
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = true
