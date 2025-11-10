@@ -5,12 +5,14 @@ Video processing module for frame extraction and video handling.
 import cv2
 import ffmpeg
 import numpy as np
-from typing import List, Tuple, Optional, Union
+from typing import List, Tuple, Optional, Union, Iterator
 import os
 import tempfile
 import requests
 from PIL import Image
 import io
+import subprocess
+import json
 
 class VideoProcessor:
     """Handles video processing, frame extraction, and metadata management."""
@@ -104,18 +106,19 @@ class VideoProcessor:
                 self.total_frames = 0
             cap.release()
     
-    def extract_frames(self, start_time: float = 0.0, end_time: Optional[float] = None, 
-                      custom_fps: Optional[float] = None) -> List[dict]:
+    def iter_frames_streaming(self, start_time: float = 0.0, end_time: Optional[float] = None, 
+                             custom_fps: Optional[float] = None, max_resolution: int = 1280) -> Iterator[dict]:
         """
-        Extract frames from video with metadata using robust FFmpeg approach.
+        Stream frames one at a time using FFmpeg with resolution cap.
         
         Args:
             start_time: Start time in seconds
             end_time: End time in seconds (None for end of video)
             custom_fps: Override default fps for this extraction
+            max_resolution: Maximum width resolution (default 1280 for 720p)
             
-        Returns:
-            List of frame metadata dictionaries
+        Yields:
+            Frame metadata dictionaries one at a time
         """
         if not self.video_path:
             raise ValueError("No video loaded")
@@ -127,51 +130,137 @@ class VideoProcessor:
         if fps <= 0:
             raise ValueError(f"Invalid FPS: {fps}")
         
-        end_time = end_time if end_time else max(0, self.duration - 1.0)  # Use 1 second before end as final frame
+        end_time = end_time if end_time else max(0, self.duration - 1.0)
+        duration = end_time - start_time
         
-        print(f"Extracting frames: start={start_time}, end={end_time}, fps={fps}, duration={self.duration}")
+        print(f"Streaming frames: start={start_time}, end={end_time}, fps={fps}, max_resolution={max_resolution}")
         
-        # Try FFmpeg extraction first (more robust)
         try:
-            frames = self._extract_frames_ffmpeg(start_time, end_time, fps)
-            if frames:
-                print(f"Extracted {len(frames)} frames using FFmpeg")
-                return frames
+            # Build FFmpeg command with resolution cap
+            cmd = [
+                'ffmpeg',
+                '-ss', str(start_time),
+                '-t', str(duration),
+                '-i', self.video_path,
+                '-vf', f"fps={fps},scale='min({max_resolution},iw)':-2",
+                '-f', 'image2pipe',
+                '-vcodec', 'mjpeg',
+                '-'
+            ]
+            
+            # Start FFmpeg subprocess
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                bufsize=10**8
+            )
+            
+            # JPEG markers
+            SOI = b'\xff\xd8'  # Start of Image
+            EOI = b'\xff\xd9'  # End of Image
+            
+            buffer = b''
+            frame_id = 0
+            
+            while True:
+                chunk = process.stdout.read(4096)
+                if not chunk:
+                    break
+                
+                buffer += chunk
+                
+                # Find complete JPEG frames in buffer
+                while True:
+                    soi_idx = buffer.find(SOI)
+                    if soi_idx == -1:
+                        break
+                    
+                    eoi_idx = buffer.find(EOI, soi_idx)
+                    if eoi_idx == -1:
+                        break
+                    
+                    # Extract JPEG frame
+                    jpeg_data = buffer[soi_idx:eoi_idx + 2]
+                    buffer = buffer[eoi_idx + 2:]
+                    
+                    # Convert JPEG to PIL Image
+                    try:
+                        frame_pil = Image.open(io.BytesIO(jpeg_data))
+                        frame_rgb = np.array(frame_pil)
+                        
+                        # Calculate timestamp
+                        timestamp = start_time + (frame_id / fps)
+                        if timestamp >= end_time:
+                            break
+                        
+                        frame_data = {
+                            'frame_id': frame_id,
+                            'timestamp': timestamp,
+                            'timestamp_formatted': self._format_timestamp(timestamp),
+                            'frame': frame_rgb,
+                            'frame_pil': frame_pil
+                        }
+                        
+                        yield frame_data
+                        frame_id += 1
+                        
+                    except Exception as e:
+                        print(f"Error decoding JPEG frame: {e}")
+                        continue
+            
+            # Wait for process to complete
+            process.wait()
+            
+            if process.returncode != 0:
+                stderr = process.stderr.read().decode()
+                raise Exception(f"FFmpeg process failed: {stderr}")
+                
         except Exception as e:
-            print(f"FFmpeg extraction failed: {e}, falling back to OpenCV")
+            print(f"FFmpeg streaming failed: {e}, falling back to OpenCV")
+            # Fallback to OpenCV
+            yield from self._iter_frames_opencv(start_time, end_time, fps, max_resolution)
+    
+    def _iter_frames_opencv(self, start_time: float, end_time: float, fps: float, 
+                           max_resolution: int = 1280) -> Iterator[dict]:
+        """
+        Fallback method to stream frames using OpenCV with resolution capping.
         
-        # Fallback to OpenCV with more resilient frame seeking
-        frames = []
+        Args:
+            start_time: Start time in seconds
+            end_time: End time in seconds
+            fps: Frames per second
+            max_resolution: Maximum width resolution
+            
+        Yields:
+            Frame metadata dictionaries one at a time
+        """
         cap = cv2.VideoCapture(self.video_path)
         
         if not cap.isOpened():
             raise ValueError("Failed to open video for frame extraction")
         
-        # Get total frame count and FPS for more accurate positioning
+        # Get video properties
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         video_fps = cap.get(cv2.CAP_PROP_FPS)
         
-        print(f"Video info: {total_frames} total frames at {video_fps} FPS")
+        print(f"OpenCV fallback: {total_frames} total frames at {video_fps} FPS, max_resolution={max_resolution}")
         
-        # Calculate frame intervals
         frame_interval = 1.0 / fps
         current_time = start_time
+        frame_id = 0
         consecutive_failures = 0
-        max_failures = 10  # Allow some failures but not endless loop
+        max_failures = 10
         
         while current_time < end_time and consecutive_failures < max_failures:
-            # Try frame-based positioning as alternative to time-based
             frame_number = int(current_time * video_fps)
             
-            # Try both time-based and frame-based positioning
-            success = False
-            
-            # Method 1: Time-based
+            # Try time-based positioning
             cap.set(cv2.CAP_PROP_POS_MSEC, current_time * 1000)
             ret, frame = cap.read()
             
             if not ret and frame_number < total_frames:
-                # Method 2: Frame-based
+                # Try frame-based positioning
                 cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
                 ret, frame = cap.read()
             
@@ -179,17 +268,28 @@ class VideoProcessor:
                 # Convert BGR to RGB
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 
-                # Create frame metadata
+                # Resize if width exceeds max_resolution
+                height, width = frame_rgb.shape[:2]
+                if width > max_resolution:
+                    new_width = max_resolution
+                    new_height = int(height * (new_width / width))
+                    # Ensure height is even for video encoding compatibility
+                    new_height = new_height - (new_height % 2)
+                    frame_rgb = cv2.resize(frame_rgb, (new_width, new_height), interpolation=cv2.INTER_AREA)
+                
+                frame_pil = Image.fromarray(frame_rgb)
+                
                 frame_data = {
-                    'frame_id': len(frames),
+                    'frame_id': frame_id,
                     'timestamp': current_time,
                     'timestamp_formatted': self._format_timestamp(current_time),
                     'frame': frame_rgb,
-                    'frame_pil': Image.fromarray(frame_rgb)
+                    'frame_pil': frame_pil
                 }
                 
-                frames.append(frame_data)
-                consecutive_failures = 0  # Reset failure counter
+                yield frame_data
+                frame_id += 1
+                consecutive_failures = 0
             else:
                 consecutive_failures += 1
                 print(f"Failed to read frame at time {current_time} (failure {consecutive_failures})")
@@ -197,6 +297,26 @@ class VideoProcessor:
             current_time += frame_interval
         
         cap.release()
+    
+    def extract_frames(self, start_time: float = 0.0, end_time: Optional[float] = None, 
+                      custom_fps: Optional[float] = None) -> List[dict]:
+        """
+        Extract frames from video with metadata using streaming approach.
+        
+        Args:
+            start_time: Start time in seconds
+            end_time: End time in seconds (None for end of video)
+            custom_fps: Override default fps for this extraction
+            
+        Returns:
+            List of frame metadata dictionaries
+        """
+        frames = []
+        
+        # Collect all frames from the streaming iterator
+        for frame_data in self.iter_frames_streaming(start_time, end_time, custom_fps):
+            frames.append(frame_data)
+        
         print(f"Extracted {len(frames)} frames")
         return frames
     
