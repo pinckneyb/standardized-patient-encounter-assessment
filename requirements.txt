@@ -30,8 +30,4 @@ reportlab
 # Ubuntu/Debian: sudo apt install ffmpeg
 # MacOS: brew install ffmpeg
 # Windows: Download from https://ffmpeg.org/
-ffmpeg
-reportlab
-openai
 psycopg2-binary
-pyannote.audio
