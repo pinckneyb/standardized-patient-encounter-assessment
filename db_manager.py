@@ -60,7 +60,7 @@ class AnalysisJobManager:
                 cur.execute(query, params)
                 conn.commit()
     
-    def update_progress(self, job_id: str, completed_batches: int, total_batches: int = None):
+    def update_progress(self, job_id: str, completed_batches: int, total_batches: Optional[int] = None):
         """Update batch processing progress."""
         with self._get_connection() as conn:
             with conn.cursor() as cur:

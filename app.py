@@ -224,6 +224,9 @@ def main():
                     st.session_state.current_job_id = job_id
                     st.info(f"💾 Analysis job created: {job_id}")
                     
+                    # Initialize variables that may be used in except block
+                    audio_path = None
+                    
                     try:
                         # Mark as in_progress INSIDE try block
                         db.update_stage(job_id, 'in_progress', status='in_progress')
@@ -414,10 +417,14 @@ def main():
                         st.error(f"❌ Analysis failed: {str(e)}")
                         # Mark job as failed
                         db.mark_error(job_id, str(e))
-                        # Cleanup on error
+                        # Cleanup temp files on error
                         if Path(video_path).exists():
                             Path(video_path).unlink()
                             print(f"🗑️ Cleaned up video file after error: {video_path}")
+                        # Also cleanup audio file if it was created
+                        if 'audio_path' in locals() and audio_path and Path(audio_path).exists():
+                            Path(audio_path).unlink()
+                            print(f"🗑️ Cleaned up audio file after error: {audio_path}")
             
             # Display analysis results
             if st.session_state.analysis_complete:
