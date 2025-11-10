@@ -91,31 +91,13 @@ def main():
     if 'current_job_id' not in st.session_state:
         st.session_state.current_job_id = None
     
-    # Check for incomplete jobs
+    # Clean up old incomplete jobs on startup
     try:
         from db_manager import AnalysisJobManager
         db_manager = AnalysisJobManager()
-        incomplete_jobs = db_manager.get_incomplete_jobs()
-        
-        if incomplete_jobs:
-            st.info(f"💾 Found {len(incomplete_jobs)} incomplete analysis job(s)")
-            with st.expander("📋 Resume Previous Analysis", expanded=False):
-                for job in incomplete_jobs:
-                    col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
-                    with col1:
-                        st.text(f"📹 {job['video_filename']}")
-                    with col2:
-                        st.text(f"Stage: {job['current_stage']}")
-                    with col3:
-                        if job['total_batches']:
-                            st.text(f"Progress: {job['completed_batches']}/{job['total_batches']}")
-                    with col4:
-                        if st.button("▶️", key=f"resume_{job['job_id']}"):
-                            st.session_state.current_job_id = job['job_id']
-                            st.session_state.resume_job = job
-                            st.rerun()
+        db_manager.cleanup_old_incomplete_jobs()
     except Exception as e:
-        st.warning(f"⚠️ Could not check for incomplete jobs: {str(e)}")
+        pass
 
     # Sidebar configuration
     with st.sidebar:
@@ -240,10 +222,12 @@ def main():
                         batch_size=batch_size
                     )
                     st.session_state.current_job_id = job_id
-                    db.update_stage(job_id, 'in_progress', status='in_progress')
                     st.info(f"💾 Analysis job created: {job_id}")
                     
                     try:
+                        # Mark as in_progress INSIDE try block
+                        db.update_stage(job_id, 'in_progress', status='in_progress')
+                        
                         # Phase 1: Extract audio
                         update_phases(0)
                         audio_path = extract_audio_from_video(video_path)
@@ -252,7 +236,6 @@ def main():
                         if audio_path:
                             # Phase 2: Transcribe audio
                             update_phases(1)
-                            db.update_stage(job_id, 'audio_extraction')
                             audio_container = st.empty()
                             # Transcribe with word-level timestamps for accurate faculty assessment
                             audio_transcript = transcribe_audio_with_whisper(
@@ -263,7 +246,9 @@ def main():
                             if not audio_transcript:
                                 audio_container.warning("⚠️ No audio transcript available")
                             else:
+                                # Save audio transcript only after successful transcription
                                 db.save_audio_transcript(job_id, audio_transcript)
+                                db.update_stage(job_id, 'audio_transcribed')
                                 # Save transcript to file
                                 transcript_file = save_analysis_file(
                                     audio_transcript, 'transcript', uploaded_file.name, job_id
@@ -280,9 +265,11 @@ def main():
                         frames = processor.extract_frames()
                         st.success(f"✅ Extracted {len(frames)} frames at {fps} FPS")
                         
+                        # Update stage after successful frame extraction
+                        db.update_stage(job_id, 'frames_extracted')
+                        
                         # Phase 4: Analyze frames
                         update_phases(3)
-                        db.update_stage(job_id, 'frame_extraction')
                         batch_processor = FrameBatchProcessor(batch_size=batch_size)
                         batches = batch_processor.create_batches(frames)
                         db.update_progress(job_id, 0, len(batches))
@@ -353,7 +340,9 @@ def main():
                         
                         status_text.success("✅ Frame analysis complete!")
                         transcript = gpt5.get_full_transcript()
+                        # Save frame transcript only after all batches complete successfully
                         db.save_frame_transcript(job_id, transcript)
+                        db.update_stage(job_id, 'frames_analyzed')
                         
                         # Phase 5: Create enhanced narrative
                         update_phases(4)
@@ -371,8 +360,9 @@ def main():
                             st.error(f"❌ Narrative enhancement failed: {enhanced_narrative}")
                             raise Exception(enhanced_narrative)
                         
-                        # Save narrative first (for all profiles)
+                        # Save narrative only after successful creation
                         db.save_narrative(job_id, enhanced_narrative)
+                        db.update_stage(job_id, 'narrative_created')
                         # Save narrative to file
                         narrative_file = save_analysis_file(
                             enhanced_narrative, 'narrative', uploaded_file.name, job_id
@@ -390,7 +380,9 @@ def main():
                                 st.error(f"❌ Assessment generation failed: {assessment_report}")
                                 raise Exception(assessment_report)
                             
+                            # Save assessment only after successful creation
                             db.save_assessment(job_id, assessment_report)
+                            # save_assessment already marks as completed with status='completed'
                             # Save assessment to file
                             assessment_file = save_analysis_file(
                                 assessment_report, 'assessment', uploaded_file.name, job_id
@@ -398,7 +390,7 @@ def main():
                             st.info(f"📄 Assessment saved: {assessment_file}")
                         else:
                             # For non-medical profiles, mark as complete after narrative
-                            db.update_stage(job_id, 'completed', status='completed')
+                            db.update_stage(job_id, 'narrative_complete', status='completed')
                         
                         # Store results
                         st.session_state.transcript = transcript

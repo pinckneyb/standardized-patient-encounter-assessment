@@ -146,3 +146,52 @@ class AnalysisJobManager:
             if audio_path.exists():
                 audio_path.unlink()
                 print(f"🗑️ Cleaned up audio file: {audio_path}")
+    
+    def cleanup_old_incomplete_jobs(self):
+        """Mark old incomplete jobs as failed and clean up their temp files.
+        This runs on app startup to handle any jobs left in-progress from crashes/interruptions.
+        """
+        with self._get_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # Find jobs that are stuck in pending or in_progress status
+                cur.execute("""
+                    SELECT job_id, video_path FROM analysis_jobs 
+                    WHERE status IN ('pending', 'in_progress')
+                """)
+                stale_jobs = cur.fetchall()
+                
+                for job in stale_jobs:
+                    job_id = job['job_id']
+                    
+                    # Mark as failed
+                    cur.execute("""
+                        UPDATE analysis_jobs 
+                        SET status = 'failed', 
+                            error_message = 'Job was interrupted and could not be completed',
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE job_id = %s
+                    """, (job_id,))
+                    
+                    # Clean up temp files
+                    if job.get('video_path'):
+                        from pathlib import Path
+                        video_path = Path(job['video_path'])
+                        if video_path.exists():
+                            try:
+                                video_path.unlink()
+                                print(f"🗑️ Cleaned up stale video file: {video_path}")
+                            except Exception as e:
+                                print(f"⚠️ Could not delete {video_path}: {e}")
+                        
+                        audio_path = video_path.parent / f"{video_path.stem}_audio.wav"
+                        if audio_path.exists():
+                            try:
+                                audio_path.unlink()
+                                print(f"🗑️ Cleaned up stale audio file: {audio_path}")
+                            except Exception as e:
+                                print(f"⚠️ Could not delete {audio_path}: {e}")
+                
+                conn.commit()
+                
+                if stale_jobs:
+                    print(f"🧹 Cleaned up {len(stale_jobs)} stale analysis job(s)")
