@@ -324,17 +324,24 @@ def main():
                                     for i, batch in enumerate(chunk_batches)
                                 }
                                 
-                                for future in as_completed(futures):
-                                    batch_idx, narrative, events = future.result()
-                                    
-                                    if narrative.startswith("Error during analysis"):
-                                        st.error(f"❌ Analysis failed at batch {batch_idx+1}: {narrative}")
-                                        raise Exception(narrative)
-                                    
-                                    batch_results.append((batch_idx, narrative, events))
-                                    completed_batches += 1
-                                    progress_bar.progress(completed_batches / total_batches)
-                                    db.update_progress(job_id, completed_batches)
+                                try:
+                                    # Timeout for each chunk (30 batches * 120s per batch = 3600s max)
+                                    # Add some buffer for concurrency
+                                    chunk_timeout = 3600  # 1 hour max per chunk
+                                    for future in as_completed(futures, timeout=chunk_timeout):
+                                        batch_idx, narrative, events = future.result(timeout=120)  # 2 min per batch result
+                                        
+                                        if narrative.startswith("Error during analysis"):
+                                            st.error(f"❌ Analysis failed at batch {batch_idx+1}: {narrative}")
+                                            raise Exception(narrative)
+                                        
+                                        batch_results.append((batch_idx, narrative, events))
+                                        completed_batches += 1
+                                        progress_bar.progress(completed_batches / total_batches)
+                                        db.update_progress(job_id, completed_batches)
+                                except TimeoutError:
+                                    st.error(f"❌ Batch processing timed out. Some frames took too long to analyze.")
+                                    raise Exception("Batch processing timeout - frames analysis took too long")
                             
                             # Sort results by batch index and update context
                             batch_results.sort(key=lambda x: x[0])

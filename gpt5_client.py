@@ -4,11 +4,13 @@ Migrated from Chat Completions API to Responses API for better performance and c
 """
 
 import openai
+from openai import APITimeoutError, APIConnectionError
 import json
 import re
 from typing import List, Dict, Any, Optional, Tuple
 import os
 from dotenv import load_dotenv
+import httpx
 
 # Load environment variables
 load_dotenv()
@@ -16,12 +18,13 @@ load_dotenv()
 class GPT5Client:
     """Client for GPT-5 Responses API integration with video analysis capabilities."""
     
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, timeout: float = 120.0):
         """
         Initialize GPT-5 client with Responses API.
         
         Args:
             api_key: OpenAI API key (will use env var if not provided)
+            timeout: Timeout in seconds for API calls (default 120 seconds)
         """
         self.api_key = api_key or os.getenv('OPENAI_API_KEY')
         if not self.api_key:
@@ -29,7 +32,12 @@ class GPT5Client:
         
         # Note: the newest OpenAI model is "gpt-5" which was released August 7, 2025.
         # do not change this unless explicitly requested by the user
-        self.client = openai.OpenAI(api_key=self.api_key)
+        # Set timeout for all API calls to prevent indefinite hangs
+        self.client = openai.OpenAI(
+            api_key=self.api_key,
+            timeout=httpx.Timeout(timeout, connect=10.0)
+        )
+        self.timeout = timeout
         
         # Context management
         self.context_state = ""
@@ -115,7 +123,15 @@ Analyze the following {len(frames)} frames from {timestamp_range}:
             event_log = self._extract_events_from_response(narrative_text)
             
             return narrative_text, event_log
-            
+        
+        except APITimeoutError as e:
+            error_msg = f"OpenAI API request timed out after {self.timeout}s. The service may be overloaded or experiencing issues."
+            print(f"⏱️  Timeout error analyzing frames: {error_msg}")
+            return f"Error during analysis: {error_msg}", []
+        except APIConnectionError as e:
+            error_msg = f"Failed to connect to OpenAI API. Check your internet connection."
+            print(f"🔌 Connection error analyzing frames: {error_msg}")
+            return f"Error during analysis: {error_msg}", []
         except Exception as e:
             error_msg = str(e).encode('utf-8', errors='replace').decode('utf-8')
             print(f"Error analyzing frames: {error_msg}")
@@ -421,7 +437,15 @@ NARRATIVE TO ASSESS:
                 assessment_text = assessment_text.encode('utf-8', errors='replace').decode('utf-8')
             
             return assessment_text
-            
+        
+        except APITimeoutError as e:
+            error_msg = f"OpenAI API request timed out after {self.timeout}s. The service may be overloaded or experiencing issues."
+            print(f"⏱️  Timeout error creating assessment: {error_msg}")
+            return f"Error during assessment: {error_msg}"
+        except APIConnectionError as e:
+            error_msg = f"Failed to connect to OpenAI API. Check your internet connection."
+            print(f"🔌 Connection error creating assessment: {error_msg}")
+            return f"Error during assessment: {error_msg}"
         except Exception as e:
             error_msg = str(e).encode('utf-8', errors='replace').decode('utf-8')
             print(f"Error creating assessment: {error_msg}")
@@ -500,7 +524,15 @@ Output a complete narrative that tells the story of what happened in this video.
                 enhanced_narrative = enhanced_narrative.encode('utf-8', errors='replace').decode('utf-8')
             
             return enhanced_narrative
-            
+        
+        except APITimeoutError as e:
+            error_msg = f"OpenAI API request timed out after {self.timeout}s. The service may be overloaded or experiencing issues."
+            print(f"⏱️  Timeout error creating narrative: {error_msg}")
+            return f"Error during narrative enhancement: {error_msg}"
+        except APIConnectionError as e:
+            error_msg = f"Failed to connect to OpenAI API. Check your internet connection."
+            print(f"🔌 Connection error creating narrative: {error_msg}")
+            return f"Error during narrative enhancement: {error_msg}"
         except Exception as e:
             error_msg = str(e).encode('utf-8', errors='replace').decode('utf-8')
             print(f"Error creating enhanced narrative: {error_msg}")

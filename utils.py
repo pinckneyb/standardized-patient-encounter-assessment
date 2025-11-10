@@ -284,6 +284,10 @@ def transcribe_audio_with_whisper(audio_path: str, api_key: str, streaming: bool
     Returns:
         str: Transcribed text with timestamps for speaker identification
     """
+    # Import at function level to avoid circular imports
+    from openai import OpenAI, APITimeoutError, APIConnectionError
+    import httpx
+    
     try:
         # Check if audio file exists and has content
         if not os.path.exists(audio_path):
@@ -294,9 +298,11 @@ def transcribe_audio_with_whisper(audio_path: str, api_key: str, streaming: bool
             print(f"Error: Audio file {audio_path} is empty")
             return None
         
-        from openai import OpenAI
-        
-        client = OpenAI(api_key=api_key)
+        # Create client with timeout to prevent indefinite hangs
+        client = OpenAI(
+            api_key=api_key,
+            timeout=httpx.Timeout(180.0, connect=10.0)  # 3 min timeout for transcription
+        )
         
         # Use verbose_json format with word timestamps for diarization support
         print(f"Transcribing {audio_path} with timestamps (whisper-1)...")
@@ -354,12 +360,26 @@ def transcribe_audio_with_whisper(audio_path: str, api_key: str, streaming: bool
             return transcript
         
         return None
-        
+    
+    except APITimeoutError as e:
+        error_msg = "OpenAI transcription request timed out after 180s. The audio file may be too large or the service is overloaded."
+        print(f"⏱️  Timeout error during transcription: {error_msg}")
+        if streamlit_container:
+            streamlit_container.error(f"❌ {error_msg}")
+        return None
+    except APIConnectionError as e:
+        error_msg = "Failed to connect to OpenAI API. Check your internet connection."
+        print(f"🔌 Connection error during transcription: {error_msg}")
+        if streamlit_container:
+            streamlit_container.error(f"❌ {error_msg}")
+        return None
     except ImportError:
         print("Error: openai library not installed. Install with: pip install openai")
         return None
     except Exception as e:
         print(f"Error transcribing audio: {e}")
+        if streamlit_container:
+            streamlit_container.error(f"❌ Transcription error: {str(e)}")
         return None
 
 def transcribe_audio_with_diarization(audio_path: str, api_key: str, hf_token: str = None, 

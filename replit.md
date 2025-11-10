@@ -90,6 +90,14 @@ The system employs a sophisticated three-pass analysis approach:
 ## Recent Changes (November 2025)
 
 ### Latest Updates (November 10, 2025)
+- **Comprehensive Timeout Handling**: Added timeout protection for all OpenAI API calls to prevent indefinite hangs
+  - GPT-5 API client: 120-second timeout for frame analysis, narrative, and assessment (httpx.Timeout)
+  - OpenAI Whisper transcription: 180-second timeout for audio transcription
+  - ThreadPoolExecutor batch processing: 1-hour timeout per chunk, 2-minute timeout per batch result
+  - Specific error handling for APITimeoutError and APIConnectionError
+  - Clear user-facing error messages when timeouts occur
+  - All timeouts trigger proper cleanup and mark jobs as failed
+  - Prevents jobs from hanging indefinitely during API outages or network issues
 - **Robust Error Handling System**: Completely eliminated incomplete analyses through architectural improvements
   - Removed incomplete analysis display UI (no resume functionality)
   - Automatic cleanup of stale jobs on app startup (`cleanup_old_incomplete_jobs`)
