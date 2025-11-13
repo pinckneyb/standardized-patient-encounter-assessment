@@ -89,7 +89,18 @@ The system employs a sophisticated three-pass analysis approach:
 
 ## Recent Changes (November 2025)
 
-### Latest Updates (November 10, 2025)
+### Latest Updates (November 13, 2025)
+- **Enhanced Assessment Report Display**: Completely redesigned on-screen assessment report formatting
+  - Color-coded score badges (green ≥4, yellow ≥3, red <3, grey for N/A)
+  - Clean card-based layout with rounded corners and visual hierarchy
+  - Each category displayed in colored container with bordered accent
+  - Professional scoring legend at top of report
+  - Overall assessment highlighted in blue summary box
+  - Improved readability with better typography and spacing
+  - Matches professional PDF output styling for consistency
+  - Robust JSON parsing with fallback to plain text display
+
+### Updates (November 10, 2025)
 - **Memory-Efficient Streaming Frame Extraction**: Completely refactored video processing to handle 10-15 minute videos without memory overload
   - **Streaming Architecture**: `iter_frames_streaming()` yields frames one at a time instead of loading all into memory
   - **720p Resolution Cap**: FFmpeg subprocess with `-vf 'fps={fps},scale=\'min(1280,iw)\':-2'` caps frame width at 1280px

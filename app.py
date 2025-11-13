@@ -43,6 +43,113 @@ def save_analysis_file(content: str, category: str, video_filename: str, job_id:
     
     return str(filepath)
 
+def display_assessment_report(assessment_text: str):
+    """
+    Display a beautifully formatted assessment report with color-coded scores.
+    
+    Args:
+        assessment_text: JSON-formatted assessment report from AI
+    """
+    import json
+    
+    try:
+        # Try to parse as JSON (handle markdown code blocks if present)
+        clean_text = assessment_text.strip()
+        if clean_text.startswith('```'):
+            # Remove markdown code block markers
+            lines = clean_text.split('\n')
+            clean_text = '\n'.join(lines[1:-1]) if len(lines) > 2 else clean_text
+        
+        assessment = json.loads(clean_text)
+        
+        # Define category order
+        categories = [
+            "History Taking",
+            "Physical Examination", 
+            "Communication Skills",
+            "Clinical Reasoning",
+            "Professionalism",
+            "Patient Education and Closure"
+        ]
+        
+        # Display scoring legend
+        st.markdown("""
+        <div style="background-color: #f0f2f6; padding: 12px; border-radius: 8px; margin-bottom: 20px;">
+            <b>Scoring Scale:</b> 
+            <span style="color: #28a745; font-weight: bold;">5 = Excellent</span> | 
+            <span style="color: #28a745;">4 = Above Average</span> | 
+            <span style="color: #ffc107; font-weight: bold;">3 = Adequate</span> | 
+            <span style="color: #dc3545;">2 = Below Average</span> | 
+            <span style="color: #dc3545; font-weight: bold;">1 = Unsatisfactory</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Display each category
+        for category in categories:
+            if category in assessment:
+                data = assessment[category]
+                
+                # Handle both dict and string formats
+                if isinstance(data, dict):
+                    score = data.get('score', 'N/A')
+                    feedback = data.get('feedback', 'No feedback provided.')
+                else:
+                    score = 'N/A'
+                    feedback = str(data)
+                
+                # Determine color based on score
+                try:
+                    score_num = float(score) if score != 'N/A' else 0
+                    if score_num >= 4:
+                        color = "#28a745"  # Green
+                        bg_color = "#d4edda"
+                    elif score_num >= 3:
+                        color = "#ffc107"  # Yellow
+                        bg_color = "#fff3cd"
+                    elif score_num > 0:
+                        color = "#dc3545"  # Red
+                        bg_color = "#f8d7da"
+                    else:
+                        color = "#6c757d"  # Grey
+                        bg_color = "#e9ecef"
+                except (ValueError, TypeError):
+                    color = "#6c757d"
+                    bg_color = "#e9ecef"
+                
+                # Display category with colored score
+                st.markdown(f"""
+                <div style="background-color: {bg_color}; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid {color};">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h4 style="margin: 0; color: #333;">{category}</h4>
+                        <span style="background-color: {color}; color: white; padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 16px;">
+                            {score}/5
+                        </span>
+                    </div>
+                    <p style="margin: 0; color: #555; line-height: 1.6;">{feedback}</p>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        # Display overall summary
+        if "Overall" in assessment:
+            overall = assessment["Overall"]
+            st.markdown(f"""
+            <div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; margin-top: 20px; border: 2px solid #2196f3;">
+                <h4 style="margin-top: 0; color: #1976d2;">📋 Overall Assessment</h4>
+                <p style="margin-bottom: 0; color: #333; line-height: 1.7; font-size: 15px;">{overall}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+    except json.JSONDecodeError:
+        # If not JSON, display as plain text with basic formatting
+        st.markdown(f"""
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #007bff;">
+            <pre style="white-space: pre-wrap; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; color: #333;">{assessment_text}</pre>
+        </div>
+        """, unsafe_allow_html=True)
+    except Exception as e:
+        st.error(f"Error displaying assessment: {str(e)}")
+        st.text(assessment_text)
+
 # Page configuration
 st.set_page_config(
     page_title="AI Video Analysis",
@@ -488,7 +595,7 @@ def main():
                 # Assessment Report
                 if st.session_state.assessment_report:
                     with st.expander("📊 Assessment Report", expanded=True):
-                        st.write(st.session_state.assessment_report)
+                        display_assessment_report(st.session_state.assessment_report)
                         
                         # PDF download button
                         from pdf_generator import create_assessment_pdf
