@@ -415,7 +415,7 @@ def main():
                         progress_bar = st.progress(0)
                         status_text = st.empty()
                         
-                        chunk_size = 30
+                        chunk_size = 10
                         completed_batches = 0
                         chunk_index = 0
                         
@@ -447,15 +447,15 @@ def main():
                                 return batch_idx, narrative, events
                             
                             batch_results = []
-                            with ThreadPoolExecutor(max_workers=30) as executor:
+                            with ThreadPoolExecutor(max_workers=10) as executor:
                                 futures = {
                                     executor.submit(process_batch, (chunk_start + i, batch)): i 
                                     for i, batch in enumerate(chunk_batches)
                                 }
                                 
                                 try:
-                                    # Timeout for each chunk (30 batches * 120s per batch = 3600s max)
-                                    chunk_timeout = 3600  # 1 hour max per chunk
+                                    # Timeout for each chunk (10 batches * 120s per batch = 1200s max)
+                                    chunk_timeout = 1200  # 20 minutes max per chunk
                                     for future in as_completed(futures, timeout=chunk_timeout):
                                         batch_idx, narrative, events = future.result(timeout=120)  # 2 min per batch result
                                         
@@ -465,7 +465,17 @@ def main():
                                         
                                         batch_results.append((batch_idx, narrative, events))
                                         completed_batches += 1
-                                        total_frames_processed += len(chunk_batches[futures[future]])
+                                        
+                                        # Explicit cleanup: release frame data from memory
+                                        batch_frames = chunk_batches[futures[future]]
+                                        total_frames_processed += len(batch_frames)
+                                        for frame_data in batch_frames:
+                                            # Delete numpy arrays and PIL images
+                                            if 'frame' in frame_data:
+                                                del frame_data['frame']
+                                            if 'frame_pil' in frame_data:
+                                                frame_data['frame_pil'].close()
+                                                del frame_data['frame_pil']
                                         
                                         # Update progress
                                         if estimated_total_batches:
@@ -482,6 +492,12 @@ def main():
                             batch_results.sort(key=lambda x: x[0])
                             for _, narrative, events in batch_results:
                                 gpt5.update_context(narrative, events)
+                            
+                            # Cleanup chunk batches and trigger garbage collection
+                            del chunk_batches
+                            del batch_results
+                            import gc
+                            gc.collect()
                         
                         # If no frames were extracted, warn but don't fail
                         if not frames_extracted_flag:

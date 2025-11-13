@@ -160,7 +160,7 @@ class VideoProcessor:
             SOI = b'\xff\xd8'  # Start of Image
             EOI = b'\xff\xd9'  # End of Image
             
-            buffer = b''
+            buffer = bytearray()
             frame_id = 0
             
             while True:
@@ -168,7 +168,13 @@ class VideoProcessor:
                 if not chunk:
                     break
                 
-                buffer += chunk
+                buffer.extend(chunk)
+                
+                # Prevent unbounded buffer growth - trim if exceeds 50MB
+                if len(buffer) > 50_000_000:
+                    # Keep only the last 10MB to preserve any incomplete frame
+                    buffer = buffer[-10_000_000:]
+                    print(f"Warning: Buffer exceeded 50MB, trimmed to 10MB")
                 
                 # Find complete JPEG frames in buffer
                 while True:
@@ -180,8 +186,8 @@ class VideoProcessor:
                     if eoi_idx == -1:
                         break
                     
-                    # Extract JPEG frame
-                    jpeg_data = buffer[soi_idx:eoi_idx + 2]
+                    # Extract JPEG frame (convert bytearray slice to bytes)
+                    jpeg_data = bytes(buffer[soi_idx:eoi_idx + 2])
                     buffer = buffer[eoi_idx + 2:]
                     
                     # Convert JPEG to PIL Image
