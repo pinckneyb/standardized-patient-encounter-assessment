@@ -94,7 +94,7 @@ Analyze the following {len(frames)} frames from {timestamp_range}:
             
             # Make API call using Responses API
             response = self.client.responses.create(
-                model="gpt-5-mini",
+                model="gpt-4o-mini",
                 instructions=instructions,
                 input=[{
                     "role": "user",
@@ -258,7 +258,7 @@ Analyze these frames with much higher detail, focusing on subtle movements and e
             
             # Make API call using Responses API
             response = self.client.responses.create(
-                model="gpt-5-mini",
+                model="gpt-4o-mini",
                 instructions=instructions,
                 input=[{
                     "role": "user",
@@ -327,7 +327,7 @@ Output format: [Condensed State Summary]"""
             
             # Make API call for condensation using Responses API
             response = self.client.responses.create(
-                model="gpt-5-mini",
+                model="gpt-4o-mini",
                 instructions=instructions,
                 input=input_text,
                 store=False  # Don't store condensation calls
@@ -417,7 +417,7 @@ NARRATIVE TO ASSESS:
 
             # Make API call using Responses API
             response = self.client.responses.create(
-                model="gpt-5-mini",
+                model="gpt-4o-mini",
                 instructions=instructions,
                 input=assessment_input,
                 store=True
@@ -500,7 +500,7 @@ Output a complete narrative that tells the story of what happened in this video.
             
             # Make API call using Responses API
             response = self.client.responses.create(
-                model="gpt-5-mini",
+                model="gpt-4o-mini",
                 instructions=instructions,
                 input=input_text,
                 previous_response_id=self.previous_response_id,  # Chain with previous analysis

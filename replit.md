@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is an AI Video Analysis application specialized for analyzing standardized patient encounters in medical education. The system implements a complete three-stage automated analysis workflow using OpenAI's latest Responses API with GPT-5 for improved performance and cost efficiency.
+This is an AI Video Analysis application specialized for analyzing standardized patient encounters and surgical skills assessments in medical education. The system implements a complete three-stage automated analysis workflow using OpenAI's Responses API with GPT-4o-mini for high-quality multimodal analysis.
 
 The system processes uploaded videos through an AI pipeline with streaming audio transcription and frame-by-frame visual analysis to generate comprehensive medical faculty assessment reports.
 
@@ -45,8 +45,8 @@ The system employs a sophisticated three-pass analysis approach:
 ### API Architecture
 - **Responses API**: Migrated from Chat Completions to new Responses API
 - **Stateful Context**: Uses `store=True` and `previous_response_id` for response chaining
-- **Model**: GPT-5 (released August 7, 2025) for all analysis stages
-- **Performance**: 3% better accuracy, 40-80% cost reduction vs Chat Completions
+- **Model**: GPT-4o-mini for all analysis stages (vision-capable, cost-effective)
+- **Performance**: Excellent multimodal capabilities for video frame analysis
 - **Response Format**: Uses `instructions=` and `input=` parameters, `output_text` for results
 
 ### Advanced Features
