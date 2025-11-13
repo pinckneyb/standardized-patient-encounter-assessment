@@ -2,9 +2,7 @@
 
 ## Overview
 
-This is an AI Video Analysis application specialized for analyzing standardized patient encounters and surgical skills assessments in medical education. The system implements a complete three-stage automated analysis workflow using OpenAI's Responses API with GPT-4o-mini for high-quality multimodal analysis.
-
-The system processes uploaded videos through an AI pipeline with streaming audio transcription and frame-by-frame visual analysis to generate comprehensive medical faculty assessment reports.
+This AI Video Analysis application is designed for analyzing standardized patient encounters and surgical skills assessments in medical education. It automates a three-stage AI analysis workflow using OpenAI's Responses API with GPT-4o-mini for multimodal analysis. The system processes uploaded videos, performs streaming audio transcription and frame-by-frame visual analysis, and generates comprehensive medical faculty assessment reports. Its purpose is to streamline medical education evaluations by providing automated, high-quality analytical insights.
 
 ## User Preferences
 
@@ -13,194 +11,67 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Core Application Structure
-- **Main Application**: Streamlit-based web interface (`app.py`) with scrollable output container, video upload, processing controls, and analysis results
-- **Video Processing Pipeline**: FFmpeg-based frame extraction with OpenCV fallback (`video_processor.py`)
-- **AI Analysis Engine**: Three-stage processing using OpenAI's Responses API (`gpt5_client.py`)
-- **Profile System**: Medical Assessment (default) and Generic Video Narration profiles (`profiles.py`)
-- **Audio Processing**: Streaming transcription with latest OpenAI models (`utils.py`)
+- **Web Interface**: Streamlit-based application (`app.py`) featuring video upload, processing controls, and a scrollable output container for results.
+- **Video Processing**: Utilizes FFmpeg for frame extraction, with OpenCV as a fallback (`video_processor.py`).
+- **AI Analysis Engine**: Employs a three-stage pipeline leveraging OpenAI's Responses API (`gpt5_client.py`).
+- **Profiles**: Supports "Medical Assessment" (default) and "Generic Video Narration" (`profiles.py`).
+- **Audio Processing**: Implements streaming transcription using OpenAI models (`utils.py`).
 
 ### Three-Stage AI Processing Pipeline
-The system employs a sophisticated three-pass analysis approach:
-1. **Stage 1 (Frame Analysis)**: GPT-5 analyzes video frames in batches (default 5 frames) with context-aware prompting to extract JSON descriptions
-2. **Stage 2 (Narrative Synthesis)**: GPT-5 combines frame observations and audio transcript into coherent narrative prose with enhanced storytelling
-3. **Stage 3 (Medical Assessment)**: GPT-5 generates medical faculty assessment report with color-coded rubric scoring and professional PDF output
+1.  **Frame Analysis**: GPT-4o-mini analyzes video frames in batches with context-aware prompting to extract JSON descriptions.
+2.  **Narrative Synthesis**: GPT-4o-mini combines frame observations and audio transcript into coherent narrative prose.
+3.  **Medical Assessment**: GPT-4o-mini generates medical faculty assessment reports, including color-coded rubric scoring and professional PDF output.
 
 ### Analysis Profiles
-- **Medical Assessment** (default): Standardized patient encounter evaluation with medical rubric scoring
-- **Generic Video Narration**: Human-like narrative description for general video content
+-   **Medical Assessment**: Evaluates standardized patient encounters with medical rubric scoring.
+-   **Generic Video Narration**: Provides human-like narrative descriptions for general video content.
 
 ### Processing Configuration
-- **Default Settings**: 1.0 FPS, batch size of 5 frames
-- **Configurable Options**: FPS (0.5-5.0), batch sizes (3-15 frames)
-- **Scrollable Output**: All analysis output displays in scrollable container below upload widget
+-   **Configurable Options**: Frame rate (0.5-5.0 FPS) and batch sizes (3-15 frames).
+-   **Default Settings**: 1.0 FPS, 5 frames per batch.
 
 ### Audio Transcription System
-- **Word-Level Timestamps**: OpenAI Whisper-1 transcription with precise timestamps for each phrase
-- **Timestamp Format**: Transcripts formatted as "[HH:MM:SS] text" for easy speaker identification by content
-- **Medical Assessment Ready**: Faculty can identify Student vs Patient by reviewing timestamped dialogue
-- **No AI Attribution Errors**: Avoids speaker diarization inaccuracies for reliable medical grading
-- **FFmpeg Audio Extraction**: Extracts audio from video as 16kHz mono WAV
-- **Automatic Integration**: Audio transcript automatically included in narrative synthesis
+-   **Word-Level Timestamps**: Uses OpenAI Whisper-1 for precise, timestamped transcription (e.g., "[HH:MM:SS] text").
+-   **Medical Assessment Ready**: Facilitates identification of speakers (Student vs. Patient) via timestamped dialogue, avoiding speaker diarization inaccuracies.
+-   **FFmpeg Audio Extraction**: Extracts audio as 16kHz mono WAV for automatic integration into narrative synthesis.
 
 ### API Architecture
-- **Responses API**: Migrated from Chat Completions to new Responses API
-- **Stateful Context**: Uses `store=True` and `previous_response_id` for response chaining
-- **Model**: GPT-4o-mini for all analysis stages (vision-capable, cost-effective)
-- **Performance**: Excellent multimodal capabilities for video frame analysis
-- **Response Format**: Uses `instructions=` and `input=` parameters, `output_text` for results
+-   **OpenAI Responses API**: Used for all analysis stages (frame, narrative, assessment) with `store=True` and `previous_response_id` for stateful context.
+-   **Model**: GPT-4o-mini is employed across all analysis stages for its vision capabilities and cost-effectiveness.
+-   **Response Format**: Utilizes `instructions=` and `input=` parameters, with `output_text` for results.
 
 ### Advanced Features
-- **Context Continuity**: Maintains narrative flow across batches using sophisticated context management
-- **Enhanced Narratives**: GPT-5 processed coherent storytelling with absolute specificity
-- **Medical Rubric Scoring**: Automated faculty-style assessment with color-coded scoring
-- **PDF Export**: Professional assessment reports for medical education
+-   **Context Continuity**: Sophisticated context management ensures narrative flow across processing batches.
+-   **Medical Rubric Scoring**: Automated faculty-style assessment with color-coded scoring.
+-   **PDF Export**: Generates professional assessment reports for medical education.
+-   **Memory-Efficient Streaming**: Refactored video processing (`iter_frames_streaming()`) to handle long videos (10-15 minutes) by yielding frames one at a time and capping resolution at 720p.
+-   **Error Handling**: Robust system with comprehensive timeout handling for OpenAI API calls and proper cleanup of temporary files and job states.
 
 ## External Dependencies
 
 ### AI Services
-- **OpenAI Responses API**: GPT-5 for all analysis stages (frame analysis, narrative, assessment)
-- **OpenAI Transcription API**: gpt-4o-mini-transcribe for streaming audio transcription
-- **API Key Management**: Securely stored via Replit Secrets (OPENAI_API_KEY)
+-   **OpenAI Responses API**: For AI analysis (frame analysis, narrative generation, medical assessment).
+-   **OpenAI Transcription API**: Specifically `gpt-4o-mini-transcribe` for streaming audio transcription.
+-   **API Key Management**: OpenAI API keys are securely stored via Replit Secrets (`OPENAI_API_KEY`).
 
 ### Video Processing
-- **FFmpeg**: Primary video processing library for frame and audio extraction
-- **OpenCV**: Fallback video processing and computer vision operations
-- **PIL/Pillow**: Image manipulation and format conversion
+-   **FFmpeg**: Primary library for video frame and audio extraction.
+-   **OpenCV**: Fallback for video processing and computer vision tasks.
+-   **PIL/Pillow**: Used for image manipulation and format conversion.
 
 ### Audio Processing
-- **OpenAI gpt-4o-mini-transcribe**: Streaming audio transcription with confidence scores
-- **FFmpeg**: Audio extraction from video files (16kHz mono WAV)
-- **PyAnnote Audio** (optional): Speaker diarization and identification
-- **TensorFlow/TensorFlow Hub** (optional): Audio analysis with YAMNet
+-   **OpenAI gpt-4o-mini-transcribe**: For streaming audio transcription.
+-   **FFmpeg**: For audio extraction from video files.
 
 ### Web Framework and UI
-- **Streamlit**: Web application framework with file upload, progress tracking, and interactive controls
-- **Scrollable Container**: Custom CSS for 600px max-height output area
-- **ReportLab**: PDF report generation for medical assessments
+-   **Streamlit**: Provides the web application framework, file upload, and interactive controls.
+-   **ReportLab**: Utilized for generating professional PDF assessment reports.
 
 ### Data Processing
-- **NumPy**: Numerical computations for video and audio analysis
-- **JSON**: Structured data storage for analysis results and configuration
+-   **NumPy**: For numerical computations in video and audio analysis.
+-   **JSON**: Used for structured data storage of analysis results and configuration.
 
 ### File Handling
-- **Pathlib**: Modern file path operations and temporary file management
-- **Base64**: Image encoding for API transmission
-- **Tempfile**: Secure temporary video and audio file handling
-
-## Recent Changes (November 2025)
-
-### Latest Updates (November 13, 2025)
-- **Enhanced Assessment Report Display**: Completely redesigned on-screen assessment report formatting
-  - Color-coded score badges (green ≥4, yellow ≥3, red <3, grey for N/A)
-  - Clean card-based layout with rounded corners and visual hierarchy
-  - Each category displayed in colored container with bordered accent
-  - Professional scoring legend at top of report
-  - Overall assessment highlighted in blue summary box
-  - Improved readability with better typography and spacing
-  - Matches professional PDF output styling for consistency
-  - Robust JSON parsing with fallback to plain text display
-
-### Updates (November 10, 2025)
-- **Memory-Efficient Streaming Frame Extraction**: Completely refactored video processing to handle 10-15 minute videos without memory overload
-  - **Streaming Architecture**: `iter_frames_streaming()` yields frames one at a time instead of loading all into memory
-  - **720p Resolution Cap**: FFmpeg subprocess with `-vf 'fps={fps},scale=\'min(1280,iw)\':-2'` caps frame width at 1280px
-  - **Memory Footprint**: Only ~90 frames in memory at once (chunk_size * batch_size) vs 800+ frames (2-3GB) previously
-  - **JPEG Streaming**: Parses JPEG frames from FFmpeg stdout using SOI/EOI markers for efficient processing
-  - **OpenCV Fallback**: `_iter_frames_opencv()` provides same streaming + resolution cap if FFmpeg fails
-  - **Streaming Batch Processing**: `iter_chunked_batches()` yields chunks of batches for concurrent processing
-  - **Accurate Progress Tracking**: Uses `duration * fps / batch_size` to estimate correct batch count (not raw frame total)
-  - **Production-Ready**: Tested and verified to prevent crashes on 10-15 minute standardized patient encounter videos
-- **Fixed Package Conflicts**: Removed wrong `ffmpeg` package from requirements.txt that caused import errors
-  - Only `ffmpeg-python>=0.2.0` is installed for Python bindings
-  - FFmpeg CLI subprocess used for reliable video processing
-  - Removed duplicate package entries
-- **Comprehensive Timeout Handling**: Added timeout protection for all OpenAI API calls to prevent indefinite hangs
-  - GPT-5 API client: 120-second timeout for frame analysis, narrative, and assessment (httpx.Timeout)
-  - OpenAI Whisper transcription: 180-second timeout for audio transcription
-  - ThreadPoolExecutor batch processing: 1-hour timeout per chunk, 2-minute timeout per batch result
-  - Specific error handling for APITimeoutError and APIConnectionError
-  - Clear user-facing error messages when timeouts occur
-  - All timeouts trigger proper cleanup and mark jobs as failed
-  - Prevents jobs from hanging indefinitely during API outages or network issues
-- **Robust Error Handling System**: Completely eliminated incomplete analyses through architectural improvements
-  - Removed incomplete analysis display UI (no resume functionality)
-  - Automatic cleanup of stale jobs on app startup (`cleanup_old_incomplete_jobs`)
-  - Database status updates only after successful stage completion (not during processing)
-  - Comprehensive temp file cleanup on both success and error (video + audio files)
-  - 'in_progress' status moved inside try block to prevent stuck jobs
-  - Stage markers: 'audio_transcribed', 'frames_extracted', 'frames_analyzed', 'narrative_created'
-  - All failures now funnel through exception handler with proper cleanup
-  - Jobs always either complete successfully or fail cleanly with no incomplete state
-- **Type Safety Improvements**: Fixed LSP type errors in database manager and app logic
-
-## Recent Changes (October 2025)
-
-### Previous Updates (October 8, 2025)
-- **Timestamp-Based Transcription**: Disabled automatic speaker diarization in favor of accurate timestamps
-  - Word-level timestamps using OpenAI Whisper-1: "[HH:MM:SS] text" format
-  - Faculty can identify Student vs Patient by reviewing timestamped dialogue content
-  - Avoids AI attribution errors from inaccurate speaker diarization
-  - More reliable for medical education assessment and grading
-  - Faster processing (~30 seconds saved per video)
-- **Tier 4 Optimization**: Increased concurrency for faster processing
-  - Concurrent batches increased from 10 to 30 (3x improvement)
-  - Default batch size reduced from 5 to 3 frames (more parallelism)
-  - Optimized for Tier 4 OpenAI limits (10,000 RPM, 10M TPM)
-  - Uses only ~18% of rate limits with plenty of headroom
-- **Automatic File Export System**: Analysis results now automatically saved as text files
-  - Audio transcripts saved to `transcripts/` folder
-  - Enhanced narratives saved to `narratives/` folder
-  - Assessment reports saved to `assessments/` folder
-  - Files named with video name, job ID, and timestamp for easy organization
-  - All output folders excluded from git for clean repository
-
-### Updates (October 6, 2025)
-- **Resume System with Database Persistence**: Implemented complete analysis job tracking
-  - PostgreSQL database stores job state, progress, and all analysis results
-  - Jobs automatically marked as in_progress/completed with proper state transitions
-  - State persisted at each processing stage (audio, frames, narrative, assessment)
-  - Batch processing progress tracked in real-time
-  - Failed jobs marked with error messages for debugging
-  - UI displays incomplete jobs with resume capability (foundation for future full resume)
-- **Automatic Cleanup System**: Intelligent temporary file management
-  - Temp video and audio files cleaned up after successful completion
-  - Cleanup also performed on analysis errors
-  - Files removed from filesystem and marked in database
-  - Prevents disk space accumulation from abandoned analyses
-- **Resilient Architecture**: System prepared for browser disconnection recovery
-  - All analysis data persisted to database
-  - Job state tracked throughout pipeline
-  - Foundation ready for full resume implementation
-- **Concurrent Batch Processing**: Implemented parallel batch processing for maximum performance
-  - Processes 10 batches concurrently using ThreadPoolExecutor
-  - Batches within each chunk of 10 share the same starting context
-  - Context is updated after all 10 batches complete, then moves to next chunk
-  - Leverages Tier 4 API limits for faster processing
-- **Professional PDF Export**: Implemented ReportLab-based PDF generation for assessment reports
-  - Color-coded scoring tables (green ≥4, yellow ≥3, red <3, grey for N/A)
-  - Professional medical report formatting with scoring legend
-  - Word-wrapped feedback text using Paragraph objects for proper formatting
-  - Robust JSON parsing handles markdown wrapping and plain text fallback
-  - One-click download button in assessment report section
-  - Type-safe handling for both dict and string category data
-- **Robust Error Handling**: Enhanced PDF generation with comprehensive edge case handling
-  - Safely handles missing scores (displays as "N/A")
-  - Handles mixed data types in assessment categories
-  - Type-safe score conversion with fallback
-  - Dynamic table styling only for existing rows
-  - Proper text wrapping in feedback cells
-
-### Previous Updates
-- **Audio Streaming Integration**: Implemented streaming audio transcription with gpt-4o-mini-transcribe
-- **Responses API Migration**: Full migration from Chat Completions to Responses API
-- **Model Upgrade**: Upgraded from gpt-5-mini to gpt-5 for better performance
-- **Default Profile**: Changed default to Medical Assessment profile
-- **Default Batch Size**: Changed from 7 to 5 frames per batch
-- **Profile Cleanup**: Removed Sports Commentary profile
-- **API Key Persistence**: Configured Replit Secrets for permanent API key storage
-- **UI Improvements**: Scrollable output container prevents page scrolling
-
-### API Integration
-- **OpenAI Integration**: Configured via Replit blueprint for secure key management
-- **Secret Storage**: OPENAI_API_KEY stored in Replit Secrets (AES-256 encrypted)
-- **Automatic Loading**: API key automatically loads from environment on every run
+-   **Pathlib**: For modern file path operations and temporary file management.
+-   **Base64**: For image encoding when transmitting to APIs.
+-   **Tempfile**: For secure handling of temporary video and audio files.
