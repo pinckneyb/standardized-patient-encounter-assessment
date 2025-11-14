@@ -81,3 +81,57 @@ Preferred communication style: Simple, everyday language.
 -   **Pathlib**: For modern file path operations and temporary file management.
 -   **Base64**: For image encoding when transmitting to APIs.
 -   **Tempfile**: For secure handling of temporary video and audio files.
+
+## Recent Changes (November 2025)
+
+### Latest Updates (November 14, 2025)
+- **Comprehensive Error Logging System** (Production-Ready):
+  - **Persistent Logs**: All errors written to `./logs/video_analysis_errors.log` (survives browser disconnects and restarts)
+  - **Log Rotation**: Keeps last 10 log files at 10MB each for long-term diagnostics
+  - **Full Context Tracking**: Every log entry includes job_id, video_filename, processing stage, and full traceback
+  - **Database Progress Tracking**: progress_details column tracks exact stage and batch number when failures occur
+  - **Stage-Level Logging**: Entry/exit logging for all major processing phases (audio extraction, frame analysis, narrative synthesis, assessment)
+  - **Batch-Level Progress**: Logs progress every 5 batches during frame analysis
+  - **ThreadPoolExecutor Error Capture**: All concurrent processing exceptions logged before raising
+  - **Browser Warning**: Users warned to keep browser open for 15-30 minute processing jobs
+  - **Duplicate Handler Prevention**: Handles Streamlit reruns without log amplification
+  - **Architect Verified**: All critical error paths confirmed to log properly with database updates
+- **Resolution Configuration**: User-controllable video processing resolution (UI dropdown in sidebar)
+  - **Options**: 1080p (Full HD), 720p (HD), 480p (SD), 360p (Low)
+  - **Default**: 720p (1280px) - balances quality and performance
+  - **Recommended**: For 1.8GB+ videos, use 480p or 360p for faster processing and lower memory usage
+  - **Memory Impact**: Lower resolutions significantly reduce memory footprint and processing time
+- **Critical Memory Leak Fixes**: Resolved crashes on long videos (10-15 minute standardized patient encounters)
+  - **FFmpeg Buffer Leak Fixed**: Changed buffer to bytearray with 50MB hard limit, prevents unbounded growth
+  - **Optimized Concurrency**: Reduced ThreadPoolExecutor from 30 to 10 workers, chunk_size from 30 to 10 batches
+  - **Explicit Frame Cleanup**: Delete numpy arrays and close PIL images after batch processing with gc.collect()
+
+### Updates (November 13, 2025)
+- **Model Migration to GPT-4o-mini**: Updated from gpt-5-mini to gpt-4o-mini for API key compatibility
+  - Full access confirmed with user's API key
+  - Excellent multimodal vision capabilities for frame analysis
+  - Cost-effective and performant for standardized patient assessment
+- **Enhanced Assessment Report Display**: Completely redesigned on-screen assessment report formatting
+  - Color-coded score badges (green ≥4, yellow ≥3, red <3, grey for N/A)
+  - Clean card-based layout with rounded corners and visual hierarchy
+  - Professional scoring legend at top of report
+
+## Troubleshooting & Diagnostics
+
+### Error Logs
+All errors are written to `./logs/video_analysis_errors.log` with full context:
+- **Location**: Project root → `logs/` folder
+- **Format**: Timestamp | Level | Stage | Job ID | Filename | Message | Traceback
+- **Persistence**: Survives browser disconnects, app restarts, and workspace restarts
+- **Rotation**: Last 10 files kept (10MB each)
+- **Access**: Check this file if processing fails silently or browser disconnects
+
+### Database Progress Tracking
+Query the `analysis_jobs` table to diagnose failures:
+```sql
+SELECT job_id, video_filename, status, error_message, progress_details, created_at 
+FROM analysis_jobs 
+ORDER BY created_at DESC 
+LIMIT 10;
+```
+The `progress_details` column shows exactly which stage and batch was processing when failure occurred.
