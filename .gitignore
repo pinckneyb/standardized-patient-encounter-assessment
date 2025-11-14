@@ -56,6 +56,9 @@ transcripts/
 narratives/
 assessments/
 
+# Error logs
+logs/
+
 # Backup files
 *_backup_*.py
 

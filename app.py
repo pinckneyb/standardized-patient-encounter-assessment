@@ -7,6 +7,7 @@ import streamlit as st
 import os
 from pathlib import Path
 from datetime import datetime
+from utils.error_logger import get_error_logger
 
 def save_analysis_file(content: str, category: str, video_filename: str, job_id: str) -> str:
     """
@@ -243,6 +244,20 @@ def main():
         fps = st.slider("Frames per second", 0.5, 5.0, 1.0, 0.5)
         batch_size = st.slider("Batch size", 3, 15, 3)
         
+        resolution_options = {
+            "1080p (Full HD)": 1920,
+            "720p (HD)": 1280,
+            "480p (SD)": 854,
+            "360p (Low)": 640
+        }
+        resolution_choice = st.selectbox(
+            "Video Resolution",
+            list(resolution_options.keys()),
+            index=1,
+            help="Lower resolutions process faster and use less memory"
+        )
+        max_resolution = resolution_options[resolution_choice]
+        
     # Main content area
     st.header("📁 Video Input")
     
@@ -287,6 +302,9 @@ def main():
                     from concurrent.futures import ThreadPoolExecutor, as_completed
                     from db_manager import AnalysisJobManager
                     
+                    error_logger = get_error_logger()
+                    st.warning("⏱️ **Important:** Large videos may take 15-30 minutes to process. Please keep your browser open during analysis.")
+                    
                     # Define processing phases
                     phases = [
                         "🎤 Phase 1: Audio Extraction",
@@ -330,24 +348,32 @@ def main():
                     )
                     st.session_state.current_job_id = job_id
                     st.info(f"💾 Analysis job created: {job_id}")
+                    error_logger.log_info("job_creation", job_id, uploaded_file.name, 
+                                         f"Job created: profile={profile}, fps={fps}, batch_size={batch_size}, size={video_size:.1f}MB")
                     
                     # Initialize variables that may be used in except block
                     audio_path = None
                     
                     try:
                         # Mark as in_progress INSIDE try block
-                        db.update_stage(job_id, 'in_progress', status='in_progress')
+                        db.update_stage(job_id, 'in_progress', status='in_progress',
+                                       progress_details="Starting video analysis")
+                        error_logger.log_stage_entry("processing", job_id, uploaded_file.name)
                         
                         # Phase 1: Extract audio
                         update_phases(0)
+                        error_logger.log_stage_entry("audio_extraction", job_id, uploaded_file.name)
+                        db.update_stage(job_id, 'extracting_audio', progress_details="Extracting audio track from video")
                         audio_path = extract_audio_from_video(video_path)
+                        error_logger.log_stage_exit("audio_extraction", job_id, uploaded_file.name, success=True)
                         
                         audio_transcript = ""
                         if audio_path:
                             # Phase 2: Transcribe audio
                             update_phases(1)
+                            error_logger.log_stage_entry("audio_transcription", job_id, uploaded_file.name)
+                            db.update_stage(job_id, 'transcribing_audio', progress_details="Transcribing audio using Whisper API")
                             audio_container = st.empty()
-                            # Transcribe with word-level timestamps for accurate faculty assessment
                             audio_transcript = transcribe_audio_with_whisper(
                                 audio_path, 
                                 api_key,
@@ -355,21 +381,27 @@ def main():
                             )
                             if not audio_transcript:
                                 audio_container.warning("⚠️ No audio transcript available")
+                                error_logger.log_warning("audio_transcription", job_id, uploaded_file.name,
+                                                        "No audio transcript generated")
                             else:
-                                # Save audio transcript only after successful transcription
                                 db.save_audio_transcript(job_id, audio_transcript)
-                                db.update_stage(job_id, 'audio_transcribed')
-                                # Save transcript to file
+                                db.update_stage(job_id, 'audio_transcribed', progress_details="Audio transcription completed")
                                 transcript_file = save_analysis_file(
                                     audio_transcript, 'transcript', uploaded_file.name, job_id
                                 )
                                 st.info(f"📄 Transcript saved: {transcript_file}")
+                                error_logger.log_stage_exit("audio_transcription", job_id, uploaded_file.name, success=True)
                         else:
                             st.warning("⚠️ No audio found in video (skipping transcription)")
+                            error_logger.log_warning("audio_extraction", job_id, uploaded_file.name,
+                                                    "No audio found in video")
                         
                         # Phase 3: Prepare streaming frame extraction
                         update_phases(2)
+                        error_logger.log_stage_entry("frame_extraction", job_id, uploaded_file.name)
+                        db.update_stage(job_id, 'loading_video', progress_details=f"Loading video for frame extraction at {fps} FPS")
                         processor = VideoProcessor()
+                        processor.set_job_context(job_id, uploaded_file.name)
                         processor.load_video(video_path, fps=fps)
                         
                         # Calculate estimated total batches for progress tracking
@@ -392,7 +424,7 @@ def main():
                         batch_processor = FrameBatchProcessor(batch_size=batch_size)
                         
                         # Create streaming frame iterator
-                        frame_iterator = processor.iter_frames_streaming()
+                        frame_iterator = processor.iter_frames_streaming(max_resolution=max_resolution)
                         
                         # Track if any frames were extracted
                         frames_extracted_flag = False
@@ -410,6 +442,9 @@ def main():
                         
                         # Initialize GPT-5 client
                         gpt5 = GPT5Client(api_key=api_key)
+                        gpt5.set_job_context(job_id, uploaded_file.name)
+                        error_logger.log_info("gpt5_initialization", job_id, uploaded_file.name,
+                                             "GPT-5 client initialized successfully")
                         
                         # Process batches using streaming chunks (30 at a time for Tier 4 limits)
                         progress_bar = st.progress(0)
@@ -418,6 +453,8 @@ def main():
                         chunk_size = 10
                         completed_batches = 0
                         chunk_index = 0
+                        
+                        error_logger.log_stage_entry("frame_analysis", job_id, uploaded_file.name)
                         
                         # Process streaming chunked batches
                         for chunk_batches in batch_processor.iter_chunked_batches(frame_iterator, chunk_size=chunk_size):
@@ -460,6 +497,9 @@ def main():
                                         batch_idx, narrative, events = future.result(timeout=120)  # 2 min per batch result
                                         
                                         if narrative.startswith("Error during analysis"):
+                                            error_logger.log_error("batch_processing", job_id, uploaded_file.name,
+                                                                 f"Analysis failed at batch {batch_idx+1}: {narrative}", None)
+                                            db.mark_error(job_id, f"Batch {batch_idx+1} analysis failed: {narrative}")
                                             st.error(f"❌ Analysis failed at batch {batch_idx+1}: {narrative}")
                                             raise Exception(narrative)
                                         
@@ -470,21 +510,30 @@ def main():
                                         batch_frames = chunk_batches[futures[future]]
                                         total_frames_processed += len(batch_frames)
                                         for frame_data in batch_frames:
-                                            # Delete numpy arrays and PIL images
                                             if 'frame' in frame_data:
                                                 del frame_data['frame']
                                             if 'frame_pil' in frame_data:
                                                 frame_data['frame_pil'].close()
                                                 del frame_data['frame_pil']
                                         
-                                        # Update progress
+                                        # Update progress with detailed logging
                                         if estimated_total_batches:
                                             progress_bar.progress(min(1.0, completed_batches / estimated_total_batches))
                                             db.update_progress(job_id, completed_batches, estimated_total_batches)
+                                            db.update_stage(job_id, 'analyzing_frames',
+                                                          progress_details=f"Analyzing batch {completed_batches}/{estimated_total_batches}")
+                                            if completed_batches % 5 == 0:
+                                                error_logger.log_progress("frame_analysis", job_id, uploaded_file.name,
+                                                                        completed_batches, estimated_total_batches,
+                                                                        f"Frames processed: {total_frames_processed}")
                                         else:
-                                            # Unknown total, just show completed count
                                             db.update_progress(job_id, completed_batches, completed_batches)
-                                except TimeoutError:
+                                            db.update_stage(job_id, 'analyzing_frames',
+                                                          progress_details=f"Analyzing batch {completed_batches}")
+                                except TimeoutError as timeout_error:
+                                    error_logger.log_error("batch_processing", job_id, uploaded_file.name,
+                                                         "Batch processing timeout", timeout_error)
+                                    db.mark_error(job_id, "Batch processing timeout - frames analysis took too long")
                                     st.error(f"❌ Batch processing timed out. Some frames took too long to analyze.")
                                     raise Exception("Batch processing timeout - frames analysis took too long")
                             
@@ -505,13 +554,15 @@ def main():
                             db.update_stage(job_id, 'frames_extracted')
                         
                         status_text.success("✅ Frame analysis complete!")
+                        error_logger.log_stage_exit("frame_analysis", job_id, uploaded_file.name, success=True)
                         transcript = gpt5.get_full_transcript()
-                        # Save frame transcript only after all batches complete successfully
                         db.save_frame_transcript(job_id, transcript)
-                        db.update_stage(job_id, 'frames_analyzed')
+                        db.update_stage(job_id, 'frames_analyzed', progress_details="All frames analyzed successfully")
                         
                         # Phase 5: Create enhanced narrative
                         update_phases(4)
+                        error_logger.log_stage_entry("narrative_synthesis", job_id, uploaded_file.name)
+                        db.update_stage(job_id, 'creating_narrative', progress_details="Synthesizing narrative from analysis")
                         events = gpt5.get_event_timeline()
                         
                         enhanced_narrative = gpt5.create_enhanced_narrative(
@@ -521,42 +572,46 @@ def main():
                             profile=selected_profile
                         )
                         
-                        # Check for errors to prevent cascading failures
                         if enhanced_narrative.startswith("Error during"):
+                            error_logger.log_error("narrative_synthesis", job_id, uploaded_file.name,
+                                                 f"Narrative enhancement failed: {enhanced_narrative}", None)
+                            db.mark_error(job_id, f"Narrative enhancement failed: {enhanced_narrative}")
                             st.error(f"❌ Narrative enhancement failed: {enhanced_narrative}")
                             raise Exception(enhanced_narrative)
                         
-                        # Save narrative only after successful creation
                         db.save_narrative(job_id, enhanced_narrative)
-                        db.update_stage(job_id, 'narrative_created')
-                        # Save narrative to file
+                        db.update_stage(job_id, 'narrative_created', progress_details="Enhanced narrative created successfully")
                         narrative_file = save_analysis_file(
                             enhanced_narrative, 'narrative', uploaded_file.name, job_id
                         )
                         st.info(f"📄 Narrative saved: {narrative_file}")
+                        error_logger.log_stage_exit("narrative_synthesis", job_id, uploaded_file.name, success=True)
                         
                         # Phase 6: Generate medical assessment (if applicable)
                         assessment_report = ""
                         if profile == "Medical Assessment":
                             update_phases(5)
+                            error_logger.log_stage_entry("assessment_generation", job_id, uploaded_file.name)
+                            db.update_stage(job_id, 'generating_assessment', 
+                                          progress_details="Generating medical assessment report")
                             assessment_report = gpt5.assess_standardized_patient_encounter(enhanced_narrative)
                             
-                            # Check for errors
                             if assessment_report.startswith("Error during"):
+                                error_logger.log_error("assessment_generation", job_id, uploaded_file.name,
+                                                     f"Assessment generation failed: {assessment_report}", None)
+                                db.mark_error(job_id, f"Assessment generation failed: {assessment_report}")
                                 st.error(f"❌ Assessment generation failed: {assessment_report}")
                                 raise Exception(assessment_report)
                             
-                            # Save assessment only after successful creation
                             db.save_assessment(job_id, assessment_report)
-                            # save_assessment already marks as completed with status='completed'
-                            # Save assessment to file
                             assessment_file = save_analysis_file(
                                 assessment_report, 'assessment', uploaded_file.name, job_id
                             )
                             st.info(f"📄 Assessment saved: {assessment_file}")
+                            error_logger.log_stage_exit("assessment_generation", job_id, uploaded_file.name, success=True)
                         else:
-                            # For non-medical profiles, mark as complete after narrative
-                            db.update_stage(job_id, 'narrative_complete', status='completed')
+                            db.update_stage(job_id, 'narrative_complete', status='completed',
+                                          progress_details="Analysis completed successfully")
                         
                         # Store results
                         st.session_state.transcript = transcript
@@ -568,26 +623,37 @@ def main():
                         # Cleanup temp files
                         if audio_path and Path(audio_path).exists():
                             Path(audio_path).unlink()
-                            print(f"🗑️ Cleaned up audio file: {audio_path}")
+                            error_logger.log_info("cleanup", job_id, uploaded_file.name,
+                                                 f"Cleaned up audio file: {audio_path}")
                         if Path(video_path).exists():
                             Path(video_path).unlink()
-                            print(f"🗑️ Cleaned up video file: {video_path}")
+                            error_logger.log_info("cleanup", job_id, uploaded_file.name,
+                                                 f"Cleaned up video file: {video_path}")
                         
+                        error_logger.log_stage_exit("processing", job_id, uploaded_file.name, success=True)
+                        error_logger.log_info("job_completion", job_id, uploaded_file.name,
+                                             f"Analysis completed successfully - Total batches: {completed_batches}, Total frames: {total_frames_processed}")
                         st.success("🗑️ Temporary files cleaned up successfully")
                         st.rerun()
                         
                     except Exception as e:
-                        st.error(f"❌ Analysis failed: {str(e)}")
-                        # Mark job as failed
-                        db.mark_error(job_id, str(e))
-                        # Cleanup temp files on error
+                        error_msg = str(e)
+                        st.error(f"❌ Analysis failed: {error_msg}")
+                        error_logger.log_error("processing", job_id, uploaded_file.name,
+                                             f"Analysis failed with error: {error_msg}", e)
+                        error_logger.log_stage_exit("processing", job_id, uploaded_file.name, success=False)
+                        
+                        db.mark_error(job_id, error_msg)
+                        
                         if Path(video_path).exists():
                             Path(video_path).unlink()
-                            print(f"🗑️ Cleaned up video file after error: {video_path}")
-                        # Also cleanup audio file if it was created
+                            error_logger.log_info("cleanup", job_id, uploaded_file.name,
+                                                 f"Cleaned up video file after error: {video_path}")
+                        
                         if 'audio_path' in locals() and audio_path and Path(audio_path).exists():
                             Path(audio_path).unlink()
-                            print(f"🗑️ Cleaned up audio file after error: {audio_path}")
+                            error_logger.log_info("cleanup", job_id, uploaded_file.name,
+                                                 f"Cleaned up audio file after error: {audio_path}")
             
             # Display analysis results
             if st.session_state.analysis_complete:

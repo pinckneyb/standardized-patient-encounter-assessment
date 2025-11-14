@@ -11,8 +11,8 @@ from typing import List, Dict, Any, Optional, Tuple
 import os
 from dotenv import load_dotenv
 import httpx
+from utils.error_logger import get_error_logger
 
-# Load environment variables
 load_dotenv()
 
 class GPT5Client:
@@ -30,20 +30,25 @@ class GPT5Client:
         if not self.api_key:
             raise ValueError("OpenAI API key is required. Set OPENAI_API_KEY environment variable or pass api_key parameter.")
         
-        # Note: the newest OpenAI model is "gpt-5" which was released August 7, 2025.
-        # do not change this unless explicitly requested by the user
-        # Set timeout for all API calls to prevent indefinite hangs
         self.client = openai.OpenAI(
             api_key=self.api_key,
             timeout=httpx.Timeout(timeout, connect=10.0)
         )
         self.timeout = timeout
         
-        # Context management
         self.context_state = ""
         self.full_transcript = []
         self.event_log = []
-        self.previous_response_id = None  # For chaining responses
+        self.previous_response_id = None
+        
+        self.error_logger = get_error_logger()
+        self.job_id: Optional[str] = None
+        self.video_filename: Optional[str] = None
+    
+    def set_job_context(self, job_id: str, video_filename: str):
+        """Set job context for error logging."""
+        self.job_id = job_id
+        self.video_filename = video_filename
     
     def analyze_frames(self, frames: List[Dict], profile: Dict[str, Any], 
                       context_state: str = "") -> Tuple[str, List[Dict]]:
@@ -126,15 +131,18 @@ Analyze the following {len(frames)} frames from {timestamp_range}:
         
         except APITimeoutError as e:
             error_msg = f"OpenAI API request timed out after {self.timeout}s. The service may be overloaded or experiencing issues."
-            print(f"⏱️  Timeout error analyzing frames: {error_msg}")
+            self.error_logger.log_error("frame_analysis_api", self.job_id, self.video_filename,
+                                       f"API Timeout: {error_msg}", e)
             return f"Error during analysis: {error_msg}", []
         except APIConnectionError as e:
             error_msg = f"Failed to connect to OpenAI API. Check your internet connection."
-            print(f"🔌 Connection error analyzing frames: {error_msg}")
+            self.error_logger.log_error("frame_analysis_api", self.job_id, self.video_filename,
+                                       f"API Connection Error: {error_msg}", e)
             return f"Error during analysis: {error_msg}", []
         except Exception as e:
             error_msg = str(e).encode('utf-8', errors='replace').decode('utf-8')
-            print(f"Error analyzing frames: {error_msg}")
+            self.error_logger.log_error("frame_analysis_api", self.job_id, self.video_filename,
+                                       f"Unexpected error analyzing frames: {error_msg}", e)
             return f"Error during analysis: {error_msg}", []
     
     def _frames_to_base64(self, frames: List[Dict]) -> List[str]:

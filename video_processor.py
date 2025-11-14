@@ -13,6 +13,7 @@ from PIL import Image
 import io
 import subprocess
 import json
+from utils.error_logger import get_error_logger
 
 class VideoProcessor:
     """Handles video processing, frame extraction, and metadata management."""
@@ -23,6 +24,14 @@ class VideoProcessor:
         self.total_frames: int = 0
         self.duration: float = 0.0
         self.frame_metadata: List[dict] = []
+        self.error_logger = get_error_logger()
+        self.job_id: Optional[str] = None
+        self.video_filename: Optional[str] = None
+    
+    def set_job_context(self, job_id: str, video_filename: str):
+        """Set job context for error logging."""
+        self.job_id = job_id
+        self.video_filename = video_filename
         
     def load_video(self, source: Union[str, bytes], fps: float = 1.0) -> bool:
         """
@@ -68,10 +77,13 @@ class VideoProcessor:
             
             # Get video properties
             self._get_video_properties()
+            self.error_logger.log_info("video_loading", self.job_id, self.video_filename,
+                                      f"Video loaded successfully: duration={self.duration:.2f}s, fps={fps}")
             return True
             
         except Exception as e:
-            print(f"Error loading video: {e}")
+            self.error_logger.log_error("video_loading", self.job_id, self.video_filename,
+                                       f"Failed to load video from {type(source).__name__}: {str(e)}", e)
             return False
     
     def _save_temp_video(self, video_bytes: bytes) -> str:
@@ -89,19 +101,22 @@ class VideoProcessor:
             
             self.duration = float(probe['format']['duration'])
             self.total_frames = int(video_info['nb_frames'])
-            print(f"FFmpeg: Duration={self.duration}, Frames={self.total_frames}")
+            self.error_logger.log_info("video_properties", self.job_id, self.video_filename,
+                                      f"FFmpeg: Duration={self.duration}, Frames={self.total_frames}")
             
         except Exception as e:
-            print(f"Error getting video properties with FFmpeg: {e}")
-            # Fallback to OpenCV
+            self.error_logger.log_warning("video_properties", self.job_id, self.video_filename,
+                                         f"FFmpeg failed: {str(e)}, falling back to OpenCV")
             cap = cv2.VideoCapture(self.video_path)
             if cap.isOpened():
                 self.total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
                 fps_orig = cap.get(cv2.CAP_PROP_FPS)
                 self.duration = self.total_frames / fps_orig if fps_orig > 0 else 0
-                print(f"OpenCV fallback: Duration={self.duration}, Frames={self.total_frames}, FPS={fps_orig}")
+                self.error_logger.log_info("video_properties", self.job_id, self.video_filename,
+                                          f"OpenCV fallback: Duration={self.duration}, Frames={self.total_frames}, FPS={fps_orig}")
             else:
-                print("Failed to open video with OpenCV")
+                self.error_logger.log_error("video_properties", self.job_id, self.video_filename,
+                                           "Failed to open video with both FFmpeg and OpenCV", None)
                 self.duration = 0
                 self.total_frames = 0
             cap.release()

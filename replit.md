@@ -27,8 +27,14 @@ Preferred communication style: Simple, everyday language.
 -   **Generic Video Narration**: Provides human-like narrative descriptions for general video content.
 
 ### Processing Configuration
--   **Configurable Options**: Frame rate (0.5-5.0 FPS) and batch sizes (3-15 frames).
--   **Default Settings**: 1.0 FPS, 5 frames per batch.
+-   **Configurable Options**: Frame rate (0.5-5.0 FPS), batch sizes (3-15 frames), and video resolution (360p-1080p).
+-   **Default Settings**: 1.0 FPS, 5 frames per batch, 720p resolution.
+-   **Resolution Control**: Users can reduce video processing resolution for faster analysis and lower memory usage. Options include:
+    -   1080p (1920px) - Full HD quality
+    -   720p (1280px) - HD quality (default)
+    -   480p (854px) - Standard definition
+    -   360p (640px) - Low resolution for fastest processing
+-   **Recommended Settings for Large Videos**: For 1.8GB+ videos or long recordings (10+ minutes), use 480p or 360p resolution to significantly reduce processing time and memory usage.
 
 ### Audio Transcription System
 -   **Word-Level Timestamps**: Uses OpenAI Whisper-1 for precise, timestamped transcription (e.g., "[HH:MM:SS] text").
