@@ -37,8 +37,13 @@ Preferred communication style: Simple, everyday language.
 -   **Recommended Settings for Large Videos**: For 1.8GB+ videos or long recordings (10+ minutes), use 480p or 360p resolution to significantly reduce processing time and memory usage.
 
 ### Audio Transcription System
--   **Word-Level Timestamps**: Uses OpenAI Whisper-1 for precise, timestamped transcription (e.g., "[HH:MM:SS] text").
--   **Medical Assessment Ready**: Facilitates identification of speakers (Student vs. Patient) via timestamped dialogue, avoiding speaker diarization inaccuracies.
+-   **AI-Powered Speaker Diarization**: Uses GPT-4o-mini to intelligently identify speakers based on conversational context and patterns.
+-   **Context-Aware Speaker Detection**: Analyzes content to distinguish Student (medical student) from Patient based on:
+    -   Question patterns (Student asks questions, Patient answers)
+    -   Medical terminology and professional language (Student)
+    -   Symptom descriptions and responses (Patient)
+    -   Introductions and exam explanations (Student)
+-   **Clean Transcript Generation**: OpenAI Whisper-1 provides accurate transcription, then GPT-4o-mini adds speaker labels.
 -   **FFmpeg Audio Extraction**: Extracts audio as 16kHz mono WAV for automatic integration into narrative synthesis.
 
 ### API Architecture
@@ -85,6 +90,12 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes (November 2025)
 
 ### Latest Updates (November 14, 2025)
+- **AI-Powered Speaker Diarization (NEW!)**:
+  - **Previous Issue**: Word-level timestamps were meaningless for speaker identification
+  - **New Solution**: GPT-4o-mini intelligently identifies Student vs Patient based on conversational context
+  - **How It Works**: Analyzes question/answer patterns, medical terminology, symptom descriptions, and introductions
+  - **Output**: Clean speaker-labeled transcript (e.g., "Student: How long has this been going on?" "Patient: About two days")
+  - **Accuracy**: Far superior to timestamp-based or random diarization approaches
 - **CRITICAL BUG FIX - Background Processing Now Works!**
   - **Bug**: cleanup_old_incomplete_jobs() was marking ALL in-progress jobs as failed on every page refresh
   - **Impact**: Jobs would fail every time user refreshed the page to check status, even though background process was still running

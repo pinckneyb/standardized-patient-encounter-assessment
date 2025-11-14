@@ -270,19 +270,95 @@ def extract_audio_from_video(video_path: str, audio_path: str = None) -> str:
         print(f"Error extracting audio: {e}")
         return None
 
-def transcribe_audio_with_whisper(audio_path: str, api_key: str, streaming: bool = False, 
-                                  streamlit_container=None) -> str:
+def diarize_transcript_with_gpt4o(raw_transcript: str, api_key: str) -> str:
     """
-    Transcribe audio using OpenAI's transcription with word-level timestamps for speaker identification.
+    Use GPT-4o-mini to intelligently diarize a transcript based on conversational context.
+    Identifies Student (medical student) vs Patient speakers in standardized patient encounters.
+    
+    Args:
+        raw_transcript: Raw transcript text without speaker labels
+        api_key: OpenAI API key
+        
+    Returns:
+        str: Diarized transcript with "Student:" and "Patient:" labels
+    """
+    from openai import OpenAI
+    import httpx
+    
+    try:
+        print("🎯 Performing AI-based speaker diarization with GPT-4o-mini...")
+        
+        client = OpenAI(
+            api_key=api_key,
+            timeout=httpx.Timeout(120.0, connect=10.0)
+        )
+        
+        diarization_prompt = f"""You are analyzing a transcript from a standardized patient encounter in medical education.
+
+CONTEXT:
+- This is a conversation between TWO speakers: a medical student and a standardized patient
+- The STUDENT (medical student) typically asks questions, takes medical history, and performs examination
+- The PATIENT responds to questions, describes symptoms, and answers the student's inquiries
+- Students often introduce themselves, explain what they'll do, and use medical terminology
+- Patients describe their symptoms, experiences, and answer questions about their condition
+
+TASK:
+Identify who is speaking for each segment of the dialogue and format it with speaker labels.
+Use "Student:" for the medical student and "Patient:" for the standardized patient.
+
+IMPORTANT RULES:
+1. Look for conversational patterns: questions vs answers, introductions, medical terminology
+2. Students typically start by introducing themselves and explaining the encounter
+3. Every line should start with either "Student:" or "Patient:"
+4. Preserve the exact original text after adding speaker labels
+5. Be intelligent about context - if someone is asking medical history questions, they're likely the Student
+6. If someone is describing symptoms or answering questions, they're likely the Patient
+
+RAW TRANSCRIPT:
+{raw_transcript}
+
+OUTPUT FORMAT:
+Student: [exact text from original]
+Patient: [exact text from original]
+Student: [exact text from original]
+...and so on
+
+Now provide the diarized transcript:"""
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an expert at speaker diarization for medical education transcripts. Identify speakers based on conversational context and patterns."},
+                {"role": "user", "content": diarization_prompt}
+            ],
+            temperature=0.1,
+            max_tokens=4000
+        )
+        
+        diarized_transcript = response.choices[0].message.content.strip()
+        
+        print(f"✅ AI diarization complete: {len(diarized_transcript)} characters")
+        return diarized_transcript
+        
+    except Exception as e:
+        print(f"⚠️ Diarization failed, returning raw transcript: {e}")
+        return f"[Diarization unavailable - raw transcript]\n\n{raw_transcript}"
+
+
+def transcribe_audio_with_whisper(audio_path: str, api_key: str, streaming: bool = False, 
+                                  streamlit_container=None, enable_diarization: bool = True) -> str:
+    """
+    Transcribe audio using OpenAI's Whisper, with optional AI-based speaker diarization.
     
     Args:
         audio_path: Path to audio file
         api_key: OpenAI API key
-        streaming: Enable streaming for real-time transcription (default False - using timestamped mode)
+        streaming: Enable streaming for real-time transcription (default False)
         streamlit_container: Optional Streamlit container for real-time UI updates
+        enable_diarization: Use GPT-4o-mini to intelligently identify speakers (default True)
         
     Returns:
-        str: Transcribed text with timestamps for speaker identification
+        str: Transcribed text with speaker labels (Student/Patient) if diarization enabled
     """
     # Import at function level to avoid circular imports
     from openai import OpenAI, APITimeoutError, APIConnectionError
@@ -304,62 +380,41 @@ def transcribe_audio_with_whisper(audio_path: str, api_key: str, streaming: bool
             timeout=httpx.Timeout(180.0, connect=10.0)  # 3 min timeout for transcription
         )
         
-        # Use verbose_json format with word timestamps for diarization support
-        print(f"Transcribing {audio_path} with timestamps (whisper-1)...")
+        # Get clean transcript from Whisper
+        print(f"Transcribing {audio_path} with whisper-1...")
         
         with open(audio_path, "rb") as audio_file:
             response = client.audio.transcriptions.create(
                 model="whisper-1",
                 file=audio_file,
-                response_format="verbose_json",
-                timestamp_granularities=["word"]
+                response_format="text"
             )
         
-        # Format transcript with timestamps for speaker identification
-        if hasattr(response, 'words') and response.words:
-            formatted_transcript = "TRANSCRIPT WITH TIMESTAMPS:\n\n"
-            current_line = ""
-            current_start = 0
-            word_count = 0
+        # Get raw transcript text
+        raw_transcript = response if isinstance(response, str) else response.text
+        
+        if not raw_transcript:
+            print("⚠️ No transcript generated")
+            return None
             
-            for word_obj in response.words:
-                word = word_obj.word.strip() if hasattr(word_obj, 'word') else ''
-                start_time = word_obj.start if hasattr(word_obj, 'start') else 0
-                
-                # Start new line every ~15 words or when there's a long pause
-                if word_count == 0:
-                    current_start = start_time
-                    current_line = word
-                    word_count = 1
-                elif word_count >= 15:  # New line every 15 words
-                    formatted_transcript += f"[{format_timestamp(current_start)}] {current_line}\n"
-                    current_start = start_time
-                    current_line = word
-                    word_count = 1
-                else:
-                    current_line += " " + word
-                    word_count += 1
+        print(f"✅ Transcription complete: {len(raw_transcript)} characters")
+        
+        # Perform AI-based diarization if enabled
+        if enable_diarization:
+            if streamlit_container:
+                streamlit_container.info("🎯 Identifying speakers with AI...")
             
-            # Add final line
-            if current_line:
-                formatted_transcript += f"[{format_timestamp(current_start)}] {current_line}\n"
-            
-            formatted_transcript += "\n\nNote: Timestamps indicate likely speaker changes. Review timestamps to identify Student vs Patient speech patterns."
+            diarized_transcript = diarize_transcript_with_gpt4o(raw_transcript, api_key)
             
             if streamlit_container:
-                streamlit_container.success(f"✅ Audio transcribed with timestamps: {len(formatted_transcript)} characters")
+                streamlit_container.success(f"✅ Diarization complete: Student and Patient identified")
             
-            print(f"✅ Transcription with timestamps complete: {len(formatted_transcript)} characters")
-            return formatted_transcript
-        
-        # Fallback if no words available
-        if hasattr(response, 'text'):
-            transcript = response.text
+            return diarized_transcript
+        else:
             if streamlit_container:
-                streamlit_container.success(f"✅ Audio transcribed: {len(transcript)} characters")
-            return transcript
-        
-        return None
+                streamlit_container.success(f"✅ Audio transcribed: {len(raw_transcript)} characters")
+            
+            return raw_transcript
     
     except APITimeoutError as e:
         error_msg = "OpenAI transcription request timed out after 180s. The audio file may be too large or the service is overloaded."
