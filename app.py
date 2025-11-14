@@ -298,7 +298,7 @@ def main():
                     from video_processor import VideoProcessor, FrameBatchProcessor
                     from gpt5_client import GPT5Client
                     from profiles import ProfileManager
-                    from utils import extract_audio_from_video, transcribe_audio_with_whisper
+                    from audio_utils import extract_audio_from_video, transcribe_audio_with_whisper
                     from concurrent.futures import ThreadPoolExecutor, as_completed
                     from db_manager import AnalysisJobManager
                     
