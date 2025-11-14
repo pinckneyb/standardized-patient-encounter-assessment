@@ -218,17 +218,33 @@ def process_video_job(job_id: str):
                 return batch_idx, narrative, events
             
             batch_results = []
-            with ThreadPoolExecutor(max_workers=30) as executor:
+            # Reduce workers for smaller chunks to avoid API rate limits and deadlocks
+            num_batches = len(chunk_batches)
+            max_workers = min(30, max(5, num_batches))
+            
+            print(f"Using {max_workers} workers for {num_batches} batches in this chunk")
+            
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = {
                     executor.submit(process_batch, (chunk_start + i, batch)): i 
                     for i, batch in enumerate(chunk_batches)
                 }
                 
                 try:
-                    # Timeout for each chunk (20 minutes max per chunk)
-                    chunk_timeout = 1200
+                    # Timeout for each chunk (10 minutes max per chunk)
+                    chunk_timeout = 600
+                    completed_futures = 0
                     for future in as_completed(futures, timeout=chunk_timeout):
-                        batch_idx, narrative, events = future.result(timeout=120)
+                        try:
+                            # 3-minute timeout per batch (more aggressive than before)
+                            batch_idx, narrative, events = future.result(timeout=180)
+                            completed_futures += 1
+                        except TimeoutError as batch_timeout:
+                            error_logger.log_error("batch_processing", job_id, video_filename,
+                                                 f"Individual batch timeout after 180s", batch_timeout)
+                            db.mark_error(job_id, "Batch processing timeout - API call hung")
+                            print(f"❌ Batch timed out after 180 seconds")
+                            raise Exception("Batch API call timeout - OpenAI API not responding")
                         
                         if narrative.startswith("Error during analysis"):
                             error_logger.log_error("batch_processing", job_id, video_filename,

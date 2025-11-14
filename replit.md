@@ -90,6 +90,11 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes (November 2025)
 
 ### Latest Updates (November 14, 2025)
+- **Fixed 99% Hang Bug**:
+  - **Issue**: Jobs were getting stuck at 99% (batch 270/272) for 15+ minutes due to API calls hanging
+  - **Root Cause**: ThreadPoolExecutor with 30 workers processing only 2 batches caused deadlocks when API calls didn't timeout properly
+  - **Fix**: Dynamic worker allocation (uses only as many workers as batches, min 5, max 30) and more aggressive 3-minute per-batch timeout
+  - **Result**: Last few batches now process reliably without hanging
 - **AI-Powered Speaker Diarization (NEW!)**:
   - **Previous Issue**: Word-level timestamps were meaningless for speaker identification
   - **New Solution**: GPT-4o-mini intelligently identifies Student vs Patient based on conversational context
