@@ -23,6 +23,7 @@ class VideoProcessor:
         self.fps: float = 1.0
         self.total_frames: int = 0
         self.duration: float = 0.0
+        self.video_width: int = 0
         self.frame_metadata: List[dict] = []
         self.error_logger = get_error_logger()
         self.job_id: Optional[str] = None
@@ -101,8 +102,9 @@ class VideoProcessor:
             
             self.duration = float(probe['format']['duration'])
             self.total_frames = int(video_info['nb_frames'])
+            self.video_width = int(video_info.get('width', 0))
             self.error_logger.log_info("video_properties", self.job_id, self.video_filename,
-                                      f"FFmpeg: Duration={self.duration}, Frames={self.total_frames}")
+                                      f"FFmpeg: Duration={self.duration}, Frames={self.total_frames}, Width={self.video_width}px")
             
         except Exception as e:
             self.error_logger.log_warning("video_properties", self.job_id, self.video_filename,
@@ -111,14 +113,16 @@ class VideoProcessor:
             if cap.isOpened():
                 self.total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
                 fps_orig = cap.get(cv2.CAP_PROP_FPS)
+                self.video_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
                 self.duration = self.total_frames / fps_orig if fps_orig > 0 else 0
                 self.error_logger.log_info("video_properties", self.job_id, self.video_filename,
-                                          f"OpenCV fallback: Duration={self.duration}, Frames={self.total_frames}, FPS={fps_orig}")
+                                          f"OpenCV fallback: Duration={self.duration}, Frames={self.total_frames}, FPS={fps_orig}, Width={self.video_width}px")
             else:
                 self.error_logger.log_error("video_properties", self.job_id, self.video_filename,
                                            "Failed to open video with both FFmpeg and OpenCV", None)
                 self.duration = 0
                 self.total_frames = 0
+                self.video_width = 0
             cap.release()
     
     def iter_frames_streaming(self, start_time: float = 0.0, end_time: Optional[float] = None, 
@@ -148,16 +152,28 @@ class VideoProcessor:
         end_time = end_time if end_time else max(0, self.duration - 1.0)
         duration = end_time - start_time
         
-        print(f"Streaming frames: start={start_time}, end={end_time}, fps={fps}, max_resolution={max_resolution}")
+        effective_max_resolution = min(self.video_width, max_resolution) if self.video_width > 0 else max_resolution
+        
+        if self.video_width > 0:
+            if self.video_width <= max_resolution:
+                print(f"Resolution: Video is {self.video_width}px, user selected {max_resolution}px, using {effective_max_resolution}px (no upscaling)")
+                self.error_logger.log_info("resolution_validation", self.job_id, self.video_filename,
+                                          f"Video is {self.video_width}px, user selected {max_resolution}px, using {effective_max_resolution}px (no upscaling)")
+            else:
+                print(f"Resolution: Video is {self.video_width}px, user selected {max_resolution}px, using {effective_max_resolution}px (downscaling)")
+                self.error_logger.log_info("resolution_validation", self.job_id, self.video_filename,
+                                          f"Video is {self.video_width}px, user selected {max_resolution}px, using {effective_max_resolution}px (downscaling)")
+        
+        print(f"Streaming frames: start={start_time}, end={end_time}, fps={fps}, effective_max_resolution={effective_max_resolution}")
         
         try:
-            # Build FFmpeg command with resolution cap
+            # Build FFmpeg command with resolution cap (only downscale, never upscale)
             cmd = [
                 'ffmpeg',
                 '-ss', str(start_time),
                 '-t', str(duration),
                 '-i', self.video_path,
-                '-vf', f"fps={fps},scale='min({max_resolution},iw)':-2",
+                '-vf', f"fps={fps},scale='min({effective_max_resolution},iw)':-2",
                 '-f', 'image2pipe',
                 '-vcodec', 'mjpeg',
                 '-'
@@ -264,8 +280,21 @@ class VideoProcessor:
         # Get video properties
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         video_fps = cap.get(cv2.CAP_PROP_FPS)
+        actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         
-        print(f"OpenCV fallback: {total_frames} total frames at {video_fps} FPS, max_resolution={max_resolution}")
+        effective_max_resolution = min(actual_width, max_resolution) if actual_width > 0 else max_resolution
+        
+        if actual_width > 0:
+            if actual_width <= max_resolution:
+                print(f"OpenCV Resolution: Video is {actual_width}px, user selected {max_resolution}px, using {effective_max_resolution}px (no upscaling)")
+                self.error_logger.log_info("resolution_validation_opencv", self.job_id, self.video_filename,
+                                          f"Video is {actual_width}px, user selected {max_resolution}px, using {effective_max_resolution}px (no upscaling)")
+            else:
+                print(f"OpenCV Resolution: Video is {actual_width}px, user selected {max_resolution}px, using {effective_max_resolution}px (downscaling)")
+                self.error_logger.log_info("resolution_validation_opencv", self.job_id, self.video_filename,
+                                          f"Video is {actual_width}px, user selected {max_resolution}px, using {effective_max_resolution}px (downscaling)")
+        
+        print(f"OpenCV fallback: {total_frames} total frames at {video_fps} FPS, effective_max_resolution={effective_max_resolution}")
         
         frame_interval = 1.0 / fps
         current_time = start_time
@@ -289,10 +318,10 @@ class VideoProcessor:
                 # Convert BGR to RGB
                 frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 
-                # Resize if width exceeds max_resolution
+                # Resize if width exceeds effective_max_resolution (only downscale, never upscale)
                 height, width = frame_rgb.shape[:2]
-                if width > max_resolution:
-                    new_width = max_resolution
+                if width > effective_max_resolution:
+                    new_width = effective_max_resolution
                     new_height = int(height * (new_width / width))
                     # Ensure height is even for video encoding compatibility
                     new_height = new_height - (new_height % 2)

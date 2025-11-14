@@ -184,6 +184,30 @@ class AnalysisJobManager:
                 results = cur.fetchall()
                 return [dict(row) for row in results]
     
+    def get_active_jobs(self) -> List[Dict[str, Any]]:
+        """Get all active jobs (queued or in_progress)."""
+        with self._get_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT * FROM analysis_jobs 
+                    WHERE status IN ('queued', 'in_progress')
+                    ORDER BY created_at DESC
+                """)
+                results = cur.fetchall()
+                return [dict(row) for row in results]
+    
+    def get_recent_jobs(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Get recent jobs ordered by creation time."""
+        with self._get_connection() as conn:
+            with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("""
+                    SELECT * FROM analysis_jobs 
+                    ORDER BY created_at DESC
+                    LIMIT %s
+                """, (limit,))
+                results = cur.fetchall()
+                return [dict(row) for row in results]
+    
     def delete_job(self, job_id: str):
         """Delete a job and its data."""
         with self._get_connection() as conn:
