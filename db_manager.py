@@ -233,13 +233,16 @@ class AnalysisJobManager:
     def cleanup_old_incomplete_jobs(self):
         """Mark old incomplete jobs as failed and clean up their temp files.
         This runs on app startup to handle any jobs left in-progress from crashes/interruptions.
+        Only marks jobs as stale if they haven't been updated in 30+ minutes.
         """
         try:
             with self._get_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    # Only mark jobs as stale if they haven't updated in 30+ minutes
                     cur.execute("""
                         SELECT job_id, video_path, video_filename FROM analysis_jobs 
                         WHERE status IN ('pending', 'in_progress')
+                        AND updated_at < NOW() - INTERVAL '30 minutes'
                     """)
                     stale_jobs = cur.fetchall()
                     

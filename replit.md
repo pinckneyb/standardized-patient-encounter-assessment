@@ -85,6 +85,26 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes (November 2025)
 
 ### Latest Updates (November 14, 2025)
+- **CRITICAL BUG FIX - Background Processing Now Works!**
+  - **Bug**: cleanup_old_incomplete_jobs() was marking ALL in-progress jobs as failed on every page refresh
+  - **Impact**: Jobs would fail every time user refreshed the page to check status, even though background process was still running
+  - **Fix**: Added 30-minute timeout - jobs only marked as stale if no updates for 30+ minutes
+  - **Result**: Background processing now survives page refreshes and browser disconnects as intended
+- **Increased Processing Speed (3x faster)**:
+  - Concurrency: 10 → 30 workers (for Tier 4 OpenAI limits: 10,000 RPM, 10M TPM)
+  - Chunk size: 10 → 30 batches
+  - Expected processing time: 15-20 minutes instead of 30-40 minutes for 1.8GB videos
+- **Browser Disconnect Resilience**:
+  - Created process_video_background.py standalone worker
+  - Subprocess runs independently with start_new_session=True (fully detached)
+  - Processing continues even when IT surveillance software disconnects browser
+  - Job Status Monitor UI shows live progress and auto-reconnects
+- **Smart Resolution Validation**:
+  - Only downscales videos, never upscales
+  - If 480p video uploaded with 720p selected → stays 480p (no quality loss from upscaling)
+  - Logs show decision for transparency
+
+### Latest Updates (November 14, 2025) - Previous
 - **Comprehensive Error Logging System** (Production-Ready):
   - **Persistent Logs**: All errors written to `./logs/video_analysis_errors.log` (survives browser disconnects and restarts)
   - **Log Rotation**: Keeps last 10 log files at 10MB each for long-term diagnostics
