@@ -234,6 +234,8 @@ def process_video_job(job_id: str):
                     # Timeout for each chunk (10 minutes max per chunk)
                     chunk_timeout = 600
                     completed_futures = 0
+                    
+                    # CRITICAL: This catches the case where as_completed() hangs waiting for stuck futures
                     for future in as_completed(futures, timeout=chunk_timeout):
                         try:
                             # 3-minute timeout per batch (more aggressive than before)
@@ -281,11 +283,18 @@ def process_video_job(job_id: str):
                             db.update_stage(job_id, 'analyzing_frames',
                                           progress_details=f"Analyzing batch {completed_batches}")
                 except TimeoutError as timeout_error:
+                    # This catches when as_completed() times out waiting for hung futures
+                    hung_futures = [f for f in futures.keys() if not f.done()]
                     error_logger.log_error("batch_processing", job_id, video_filename,
-                                         "Batch processing timeout", timeout_error)
-                    db.mark_error(job_id, "Batch processing timeout - frames analysis took too long")
-                    print(f"❌ Batch processing timed out")
-                    raise Exception("Batch processing timeout - frames analysis took too long")
+                                         f"Chunk timeout - {len(hung_futures)} futures hung after {chunk_timeout}s", timeout_error)
+                    db.mark_error(job_id, f"Chunk timeout - {len(hung_futures)} batches hung and did not complete")
+                    print(f"❌ Chunk timed out with {len(hung_futures)} hung futures after {chunk_timeout}s")
+                    
+                    # Cancel all hung futures
+                    for f in hung_futures:
+                        f.cancel()
+                    
+                    raise Exception(f"Chunk timeout - {len(hung_futures)} API calls hung and did not respond")
             
             # Sort results by batch index and update context
             batch_results.sort(key=lambda x: x[0])

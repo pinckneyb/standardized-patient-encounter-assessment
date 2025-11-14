@@ -32,7 +32,8 @@ class GPT5Client:
         
         self.client = openai.OpenAI(
             api_key=self.api_key,
-            timeout=httpx.Timeout(timeout, connect=10.0)
+            timeout=httpx.Timeout(timeout, connect=10.0),
+            max_retries=2  # Limit retries to prevent indefinite hanging
         )
         self.timeout = timeout
         
