@@ -15,6 +15,42 @@ import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
+def save_analysis_file(content: str, category: str, video_filename: str, job_id: str) -> str:
+    """
+    Save analysis results to organized folders.
+    
+    Args:
+        content: The text content to save
+        category: 'transcript', 'narrative', or 'assessment'
+        video_filename: Original video filename
+        job_id: Analysis job ID
+        
+    Returns:
+        Path to saved file
+    """
+    # Create folder if it doesn't exist
+    folder_map = {
+        'transcript': 'transcripts',
+        'narrative': 'narratives',
+        'assessment': 'assessments'
+    }
+    
+    folder = folder_map.get(category, 'output')
+    Path(folder).mkdir(exist_ok=True)
+    
+    # Create filename with timestamp and job_id
+    base_name = Path(video_filename).stem
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"{base_name}_{job_id}_{timestamp}.txt"
+    filepath = Path(folder) / filename
+    
+    # Save file
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(content)
+    
+    return str(filepath)
+
+
 def process_video_job(job_id: str):
     """
     Process a video analysis job in the background.
@@ -346,42 +382,6 @@ def process_video_job(job_id: str):
             Path(audio_path).unlink()
             error_logger.log_info("cleanup", job_id, video_filename,
                                  f"Cleaned up audio file after error: {audio_path}")
-
-
-def save_analysis_file(content: str, category: str, video_filename: str, job_id: str) -> str:
-    """
-    Save analysis results to organized folders.
-    
-    Args:
-        content: The text content to save
-        category: 'transcript', 'narrative', or 'assessment'
-        video_filename: Original video filename
-        job_id: Analysis job ID
-        
-    Returns:
-        Path to saved file
-    """
-    # Create folder if it doesn't exist
-    folder_map = {
-        'transcript': 'transcripts',
-        'narrative': 'narratives',
-        'assessment': 'assessments'
-    }
-    
-    folder = folder_map.get(category, 'output')
-    Path(folder).mkdir(exist_ok=True)
-    
-    # Create filename with timestamp and job_id
-    base_name = Path(video_filename).stem
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"{base_name}_{job_id}_{timestamp}.txt"
-    filepath = Path(folder) / filename
-    
-    # Save file
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(content)
-    
-    return str(filepath)
 
 
 if __name__ == "__main__":
