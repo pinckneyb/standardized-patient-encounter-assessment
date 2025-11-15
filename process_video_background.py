@@ -218,88 +218,152 @@ def process_video_job(job_id: str):
                 return batch_idx, narrative, events
             
             batch_results = []
-            # Reduce workers for smaller chunks to avoid API rate limits and deadlocks
             num_batches = len(chunk_batches)
-            max_workers = min(30, max(5, num_batches))
             
-            print(f"Using {max_workers} workers for {num_batches} batches in this chunk")
-            
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = {
-                    executor.submit(process_batch, (chunk_start + i, batch)): i 
-                    for i, batch in enumerate(chunk_batches)
-                }
+            # CRITICAL: Use serial processing for last few batches to avoid deadlocks
+            # When only a handful of batches remain, executor-based parallelism can hang
+            if num_batches < 5:
+                print(f"🔒 Switching to SERIAL processing for last {num_batches} batches (prevents deadlock)")
                 
-                try:
-                    # Timeout for each chunk (10 minutes max per chunk)
-                    chunk_timeout = 600
-                    completed_futures = 0
+                # Process serially with strict timeout
+                for i, batch in enumerate(chunk_batches):
+                    batch_idx = chunk_start + i
+                    print(f"Processing batch {batch_idx+1}/{estimated_total_batches} (serial mode)...")
                     
-                    # CRITICAL: This catches the case where as_completed() hangs waiting for stuck futures
-                    for future in as_completed(futures, timeout=chunk_timeout):
+                    try:
+                        import signal
+                        
+                        # Use signal-based timeout for serial processing
+                        def timeout_handler(signum, frame):
+                            raise TimeoutError(f"Batch {batch_idx+1} timed out after 300s")
+                        
+                        signal.signal(signal.SIGALRM, timeout_handler)
+                        signal.alarm(300)  # 5-minute timeout per batch
+                        
                         try:
-                            # 3-minute timeout per batch (more aggressive than before)
-                            batch_idx, narrative, events = future.result(timeout=180)
-                            completed_futures += 1
-                        except TimeoutError as batch_timeout:
-                            error_logger.log_error("batch_processing", job_id, video_filename,
-                                                 f"Individual batch timeout after 180s", batch_timeout)
-                            db.mark_error(job_id, "Batch processing timeout - API call hung")
-                            print(f"❌ Batch timed out after 180 seconds")
-                            raise Exception("Batch API call timeout - OpenAI API not responding")
+                            narrative, events = gpt5.analyze_frames(
+                                batch, 
+                                selected_profile, 
+                                gpt5.context_state
+                            )
+                        finally:
+                            signal.alarm(0)  # Cancel alarm
                         
                         if narrative.startswith("Error during analysis"):
                             error_logger.log_error("batch_processing", job_id, video_filename,
-                                                 f"Analysis failed at batch {batch_idx+1}: {narrative}", None)
-                            db.mark_error(job_id, f"Batch {batch_idx+1} analysis failed: {narrative}")
-                            print(f"❌ Analysis failed at batch {batch_idx+1}: {narrative}")
+                                                 f"Serial batch {batch_idx+1} failed: {narrative}", None)
+                            db.mark_error(job_id, f"Batch {batch_idx+1} failed: {narrative}")
+                            print(f"❌ Batch {batch_idx+1} failed: {narrative}")
                             raise Exception(narrative)
                         
                         batch_results.append((batch_idx, narrative, events))
                         completed_batches += 1
                         
-                        # Explicit cleanup: release frame data from memory
-                        batch_frames = chunk_batches[futures[future]]
-                        total_frames_processed += len(batch_frames)
-                        for frame_data in batch_frames:
-                            if 'frame' in frame_data:
-                                del frame_data['frame']
-                            if 'frame_pil' in frame_data:
-                                frame_data['frame_pil'].close()
-                                del frame_data['frame_pil']
-                        
-                        # Update progress with detailed logging
+                        # Update progress
                         if estimated_total_batches:
                             db.update_progress(job_id, completed_batches, estimated_total_batches)
                             db.update_stage(job_id, 'analyzing_frames',
-                                          progress_details=f"Analyzing batch {completed_batches}/{estimated_total_batches}")
-                            if completed_batches % 5 == 0:
-                                error_logger.log_progress("frame_analysis", job_id, video_filename,
-                                                        completed_batches, estimated_total_batches,
-                                                        f"Frames processed: {total_frames_processed}")
-                                print(f"Progress: {completed_batches}/{estimated_total_batches} batches")
-                        else:
-                            db.update_progress(job_id, completed_batches, completed_batches)
-                            db.update_stage(job_id, 'analyzing_frames',
-                                          progress_details=f"Analyzing batch {completed_batches}")
-                except TimeoutError as timeout_error:
-                    # This catches when as_completed() times out waiting for hung futures
-                    hung_futures = [f for f in futures.keys() if not f.done()]
-                    error_logger.log_error("batch_processing", job_id, video_filename,
-                                         f"Chunk timeout - {len(hung_futures)} futures hung after {chunk_timeout}s", timeout_error)
-                    db.mark_error(job_id, f"Chunk timeout - {len(hung_futures)} batches hung and did not complete")
-                    print(f"❌ Chunk timed out with {len(hung_futures)} hung futures after {chunk_timeout}s")
+                                          progress_details=f"Analyzing batch {completed_batches}/{estimated_total_batches} (serial)")
+                            print(f"✅ Batch {batch_idx+1} complete ({completed_batches}/{estimated_total_batches})")
                     
-                    # Cancel all hung futures
-                    for f in hung_futures:
-                        f.cancel()
+                    except TimeoutError as te:
+                        error_logger.log_error("batch_processing", job_id, video_filename,
+                                             f"Serial batch timeout: {str(te)}", te)
+                        db.mark_error(job_id, f"Batch {batch_idx+1} timeout in serial mode")
+                        print(f"❌ {str(te)}")
+                        raise Exception(f"Serial batch timeout: {str(te)}")
+                
+                # Skip to context update (no parallel processing needed)
+            else:
+                # Parallel processing for larger chunks
+                max_workers = min(30, max(5, num_batches))
+                print(f"Using {max_workers} workers for {num_batches} batches in this chunk")
+                
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    futures = {
+                        executor.submit(process_batch, (chunk_start + i, batch)): i 
+                        for i, batch in enumerate(chunk_batches)
+                    }
                     
-                    raise Exception(f"Chunk timeout - {len(hung_futures)} API calls hung and did not respond")
+                    try:
+                        # Timeout for each chunk (10 minutes max per chunk)
+                        chunk_timeout = 600
+                        completed_futures = 0
+                        
+                        # CRITICAL: This catches the case where as_completed() hangs waiting for stuck futures
+                        for future in as_completed(futures, timeout=chunk_timeout):
+                            try:
+                                # 3-minute timeout per batch (more aggressive than before)
+                                batch_idx, narrative, events = future.result(timeout=180)
+                                completed_futures += 1
+                            except TimeoutError as batch_timeout:
+                                error_logger.log_error("batch_processing", job_id, video_filename,
+                                                     f"Individual batch timeout after 180s", batch_timeout)
+                                db.mark_error(job_id, "Batch processing timeout - API call hung")
+                                print(f"❌ Batch timed out after 180 seconds")
+                                raise Exception("Batch API call timeout - OpenAI API not responding")
+                            
+                            if narrative.startswith("Error during analysis"):
+                                error_logger.log_error("batch_processing", job_id, video_filename,
+                                                     f"Analysis failed at batch {batch_idx+1}: {narrative}", None)
+                                db.mark_error(job_id, f"Batch {batch_idx+1} analysis failed: {narrative}")
+                                print(f"❌ Analysis failed at batch {batch_idx+1}: {narrative}")
+                                raise Exception(narrative)
+                            
+                            batch_results.append((batch_idx, narrative, events))
+                            completed_batches += 1
+                            
+                            # Explicit cleanup: release frame data from memory
+                            batch_frames = chunk_batches[futures[future]]
+                            total_frames_processed += len(batch_frames)
+                            for frame_data in batch_frames:
+                                if 'frame' in frame_data:
+                                    del frame_data['frame']
+                                if 'frame_pil' in frame_data:
+                                    frame_data['frame_pil'].close()
+                                    del frame_data['frame_pil']
+                            
+                            # Update progress with detailed logging
+                            if estimated_total_batches:
+                                db.update_progress(job_id, completed_batches, estimated_total_batches)
+                                db.update_stage(job_id, 'analyzing_frames',
+                                              progress_details=f"Analyzing batch {completed_batches}/{estimated_total_batches}")
+                                if completed_batches % 5 == 0:
+                                    error_logger.log_progress("frame_analysis", job_id, video_filename,
+                                                            completed_batches, estimated_total_batches,
+                                                            f"Frames processed: {total_frames_processed}")
+                                    print(f"Progress: {completed_batches}/{estimated_total_batches} batches")
+                            else:
+                                db.update_progress(job_id, completed_batches, completed_batches)
+                                db.update_stage(job_id, 'analyzing_frames',
+                                              progress_details=f"Analyzing batch {completed_batches}")
+                    except TimeoutError as timeout_error:
+                        # This catches when as_completed() times out waiting for hung futures
+                        hung_futures = [f for f in futures.keys() if not f.done()]
+                        error_logger.log_error("batch_processing", job_id, video_filename,
+                                             f"Chunk timeout - {len(hung_futures)} futures hung after {chunk_timeout}s", timeout_error)
+                        db.mark_error(job_id, f"Chunk timeout - {len(hung_futures)} batches hung and did not complete")
+                        print(f"❌ Chunk timed out with {len(hung_futures)} hung futures after {chunk_timeout}s")
+                        
+                        # Cancel all hung futures
+                        for f in hung_futures:
+                            f.cancel()
+                        
+                        raise Exception(f"Chunk timeout - {len(hung_futures)} API calls hung and did not respond")
             
             # Sort results by batch index and update context
             batch_results.sort(key=lambda x: x[0])
             for _, narrative, events in batch_results:
                 gpt5.update_context(narrative, events)
+            
+            # CHECKPOINT: Save incremental progress after each chunk
+            # This prevents token waste if job fails later
+            partial_transcript = gpt5.get_full_transcript()
+            if partial_transcript and completed_batches % 30 == 0:  # Save every 30 batches
+                db.save_frame_transcript(job_id, partial_transcript)
+                print(f"💾 Checkpoint saved: {completed_batches} batches completed")
+                error_logger.log_info("checkpoint", job_id, video_filename,
+                                    f"Saved checkpoint at batch {completed_batches}/{estimated_total_batches}")
             
             # Cleanup chunk batches and trigger garbage collection
             del chunk_batches
@@ -314,8 +378,11 @@ def process_video_job(job_id: str):
         
         print("✅ Frame analysis complete!")
         error_logger.log_stage_exit("frame_analysis", job_id, video_filename, success=True)
+        
+        # Save final transcript (might already be saved from last checkpoint)
         transcript = gpt5.get_full_transcript()
         db.save_frame_transcript(job_id, transcript)
+        print(f"💾 Final frame transcript saved: {len(transcript)} characters")
         db.update_stage(job_id, 'frames_analyzed', progress_details="All frames analyzed successfully")
         
         # Phase 5: Create enhanced narrative
