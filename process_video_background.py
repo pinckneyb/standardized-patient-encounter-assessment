@@ -286,6 +286,9 @@ def process_video_job(job_id: str):
                 max_workers = min(30, max(5, num_batches))
                 print(f"Using {max_workers} workers for {num_batches} batches in this chunk")
                 
+                # Timeout for each chunk (10 minutes max per chunk)
+                chunk_timeout = 600
+                
                 with ThreadPoolExecutor(max_workers=max_workers) as executor:
                     futures = {
                         executor.submit(process_batch, (chunk_start + i, batch)): i 
@@ -293,8 +296,6 @@ def process_video_job(job_id: str):
                     }
                     
                     try:
-                        # Timeout for each chunk (10 minutes max per chunk)
-                        chunk_timeout = 600
                         completed_futures = 0
                         
                         # CRITICAL: This catches the case where as_completed() hangs waiting for stuck futures
