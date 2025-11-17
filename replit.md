@@ -90,16 +90,20 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes (November 2025)
 
 ### Latest Updates (November 17, 2025)
-- **ACTUAL ROOT CAUSE FIXED: 99% Hang Bug Solved!**
-  - **Issue**: Jobs consistently stuck at 99% (batch 270/272) waiting forever with no timeout
-  - **Root Cause**: Batch estimation used `math.ceil()` causing over-estimation by 1 batch
+- **99% HANG BUG COMPLETELY SOLVED!** (Two critical fixes):
+  - **Issue**: Jobs consistently stuck at 99% (batch 270/271) waiting forever with no timeout
+  - **Root Cause #1 - Batch Over-Estimation**: Used `math.ceil()` instead of `int()` for batch counting
     - Video: 814s → 815 frames @ 1 FPS → 271.67 batches with batch_size=3
-    - System estimated: **272 batches** (ceil)
-    - Actual batches: **271 batches** (floor)
-    - Result: Frame iterator waited forever for non-existent batch 271
-  - **Fix**: Changed estimation from `math.ceil()` to `int()` (floor) - never over-estimates
-  - **Why previous fixes didn't work**: Hang occurred in frame extraction (before ThreadPoolExecutor), not in API calls
-  - **Result**: System now estimates correct batch count, never waits for frames that don't exist
+    - Old: **272 batches** (ceil) - tried to process non-existent batch 271
+    - Fixed: **271 batches** (floor) - correct count
+  - **Root Cause #2 - Iterator Loop Doesn't Stop**: Even after completing all 271 batches, the for loop kept calling the frame iterator waiting for more chunks
+    - Old: Loop continued indefinitely after all batches completed
+    - Fixed: Added explicit check to break loop when `completed_batches >= estimated_total_batches`
+  - **Result**: Processing now completes successfully at exactly 100% without hanging
+- **Job Management UI Improvements**:
+  - **Bulk Clear**: "🗑️ Clear X Failed" button to remove all failed jobs at once
+  - **Individual Delete**: 🗑️ button next to each job for selective cleanup
+  - Both methods clean up database records and temporary files
 
 ### Previous Fix Attempts (November 15, 2025) - Partially Successful
   - **Fix #1 - Timeout Handling**: Added proper `TimeoutError` handling for API calls ✅

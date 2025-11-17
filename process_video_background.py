@@ -198,6 +198,11 @@ def process_video_job(job_id: str):
             chunk_start = completed_batches
             chunk_end = chunk_start + len(chunk_batches)
             
+            # CRITICAL: Check if we've already processed all expected batches
+            if estimated_total_batches and completed_batches >= estimated_total_batches:
+                print(f"✅ All {estimated_total_batches} batches completed, stopping iteration")
+                break
+            
             # Mark frames_extracted after first batch
             if not frames_extracted_flag and len(chunk_batches) > 0:
                 db.update_stage(job_id, 'frames_extracted')
