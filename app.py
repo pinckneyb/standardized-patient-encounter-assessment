@@ -210,7 +210,7 @@ def main():
     # Job Status Polling UI
     st.markdown("---")
     with st.expander("🔄 Job Status Monitor", expanded=True):
-        col1, col2 = st.columns([3, 1])
+        col1, col2, col3 = st.columns([2, 1, 1])
         
         with col1:
             st.markdown("### Active Jobs")
@@ -218,6 +218,19 @@ def main():
         with col2:
             if st.button("🔄 Refresh Status"):
                 st.rerun()
+        
+        with col3:
+            # Clear failed jobs button
+            from db_manager import AnalysisJobManager
+            db_temp = AnalysisJobManager()
+            failed_count = len([j for j in db_temp.get_recent_jobs(limit=20) if j.get('status') == 'failed'])
+            if failed_count > 0:
+                if st.button(f"🗑️ Clear {failed_count} Failed"):
+                    for job in db_temp.get_recent_jobs(limit=50):
+                        if job.get('status') == 'failed':
+                            db_temp.delete_job(job.get('job_id'))
+                    st.success(f"Cleared {failed_count} failed jobs!")
+                    st.rerun()
         
         try:
             from db_manager import AnalysisJobManager
@@ -272,14 +285,20 @@ def main():
                     status_emoji = "✅" if status == "completed" else "❌" if status == "failed" else "⏸️"
                     
                     with st.container():
-                        col_job1, col_job2, col_job3 = st.columns([2, 2, 1])
+                        col_job1, col_job2, col_job3, col_job4 = st.columns([2, 2, 1, 1])
                         with col_job1:
                             st.markdown(f"**{status_emoji} {video_filename}**")
                         with col_job2:
                             st.markdown(f"`{job_id}`")
                         with col_job3:
-                            if st.button("View Results", key=f"view_{job_id}"):
-                                st.session_state.current_job_id = job_id
+                            if status == "completed":
+                                if st.button("View Results", key=f"view_{job_id}"):
+                                    st.session_state.current_job_id = job_id
+                                    st.rerun()
+                        with col_job4:
+                            if st.button("🗑️", key=f"delete_{job_id}", help="Delete this job"):
+                                db_mgr.delete_job(job_id)
+                                st.success(f"Deleted job {job_id}")
                                 st.rerun()
             else:
                 st.info("👋 No jobs found. Upload a video below to start your first analysis!")
