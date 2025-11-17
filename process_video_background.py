@@ -144,9 +144,11 @@ def process_video_job(job_id: str):
         processor.load_video(video_path, fps=fps)
         
         # Calculate estimated total batches
+        # CRITICAL FIX: Use floor() instead of ceil() to avoid over-estimating
+        # Over-estimation causes the frame iterator to wait forever for non-existent frames
         if processor.duration and processor.duration > 0:
             estimated_sampled_frames = processor.duration * fps
-            estimated_total_batches = math.ceil(estimated_sampled_frames / batch_size)
+            estimated_total_batches = int(estimated_sampled_frames / batch_size)  # floor, not ceil
         else:
             estimated_total_batches = None
         

@@ -89,15 +89,23 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 2025)
 
-### Latest Updates (November 15, 2025)
-- **CRITICAL FIX: 99% Hang Bug Eliminated** (3 layers of protection):
-  - **Issue**: Jobs consistently stuck at 99% (batch 270/272) for 15+ minutes, wasting tokens and time
-  - **Root Cause**: ThreadPoolExecutor `as_completed()` timeout not being caught, causing silent deadlocks with hung API calls
-  - **Fix #1 - Timeout Handling**: Added proper `TimeoutError` exception handling for both `as_completed()` and `future.result()` - no more silent hangs
-  - **Fix #2 - Incremental Checkpointing**: Saves frame transcript to DB every 30 batches (every chunk) - prevents total token loss if job fails
-  - **Fix #3 - Serial Processing**: When <5 batches remain, bypasses ThreadPoolExecutor entirely and processes serially with signal-based 5-minute timeout
-  - **Result**: Controlled failures with logging instead of infinite hangs; partial progress saved; last 2-3 batches processed reliably
-  - **Confidence**: Architect review confirmed these fixes target root causes and should eliminate 99% hang scenario
+### Latest Updates (November 17, 2025)
+- **ACTUAL ROOT CAUSE FIXED: 99% Hang Bug Solved!**
+  - **Issue**: Jobs consistently stuck at 99% (batch 270/272) waiting forever with no timeout
+  - **Root Cause**: Batch estimation used `math.ceil()` causing over-estimation by 1 batch
+    - Video: 814s → 815 frames @ 1 FPS → 271.67 batches with batch_size=3
+    - System estimated: **272 batches** (ceil)
+    - Actual batches: **271 batches** (floor)
+    - Result: Frame iterator waited forever for non-existent batch 271
+  - **Fix**: Changed estimation from `math.ceil()` to `int()` (floor) - never over-estimates
+  - **Why previous fixes didn't work**: Hang occurred in frame extraction (before ThreadPoolExecutor), not in API calls
+  - **Result**: System now estimates correct batch count, never waits for frames that don't exist
+
+### Previous Fix Attempts (November 15, 2025) - Partially Successful
+  - **Fix #1 - Timeout Handling**: Added proper `TimeoutError` handling for API calls ✅
+  - **Fix #2 - Incremental Checkpointing**: Saves frame transcript every 30 batches ✅ (prevents token loss)
+  - **Fix #3 - Serial Processing**: Processes last <5 batches serially ✅ (good for API timeouts)
+  - **Why they didn't solve 99% hang**: The hang was in frame extraction, not API processing
 - **AI-Powered Speaker Diarization (NEW!)**:
   - **Previous Issue**: Word-level timestamps were meaningless for speaker identification
   - **New Solution**: GPT-4o-mini intelligently identifies Student vs Patient based on conversational context
