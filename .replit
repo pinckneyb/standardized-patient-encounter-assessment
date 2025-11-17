@@ -23,21 +23,17 @@ args = "AI Video Watcher"
 name = "AI Video Watcher"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "streamlit run app.py --server.port=5000 --server.address=0.0.0.0 --server.headless=true"
 waitForPort = 5000
 
-[workflows.workflow.metadata]
-outputType = "webview"
-
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 33417
-externalPort = 3001
 
 [[ports]]
 localPort = 35393
