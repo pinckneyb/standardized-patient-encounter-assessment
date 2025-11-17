@@ -220,17 +220,21 @@ def main():
                 st.rerun()
         
         with col3:
-            # Clear failed jobs button
-            from db_manager import AnalysisJobManager
-            db_temp = AnalysisJobManager()
-            failed_count = len([j for j in db_temp.get_recent_jobs(limit=20) if j.get('status') == 'failed'])
-            if failed_count > 0:
-                if st.button(f"🗑️ Clear {failed_count} Failed"):
-                    for job in db_temp.get_recent_jobs(limit=50):
-                        if job.get('status') == 'failed':
-                            db_temp.delete_job(job.get('job_id'))
-                    st.success(f"Cleared {failed_count} failed jobs!")
-                    st.rerun()
+            # Clear failed jobs button (with DB safety)
+            try:
+                from db_manager import AnalysisJobManager
+                db_temp = AnalysisJobManager()
+                failed_count = len([j for j in db_temp.get_recent_jobs(limit=20) if j.get('status') == 'failed'])
+                if failed_count > 0:
+                    if st.button(f"🗑️ Clear {failed_count} Failed"):
+                        for job in db_temp.get_recent_jobs(limit=50):
+                            if job.get('status') == 'failed':
+                                db_temp.delete_job(job.get('job_id'))
+                        st.success(f"Cleared {failed_count} failed jobs!")
+                        st.rerun()
+            except Exception:
+                # Silently skip if DB unavailable
+                pass
         
         try:
             from db_manager import AnalysisJobManager
