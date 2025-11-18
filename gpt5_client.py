@@ -504,9 +504,11 @@ NARRATIVE TO ASSESS:
             chunks = self._split_transcript_into_chunks(transcript, MAX_CHUNK_SIZE)
             print(f"📦 Split into {len(chunks)} chunks")
             
-            # Process each chunk into a sub-narrative
-            sub_narratives = []
-            for i, chunk in enumerate(chunks):
+            # Process each chunk into a sub-narrative (PARALLEL for Tier 4 speed)
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            
+            def process_chunk(chunk_data):
+                i, chunk = chunk_data
                 print(f"✍️  Processing chunk {i+1}/{len(chunks)}...")
                 
                 instructions = """You are a clinical documentation specialist. Create a factual observational record from this portion of video analysis data."""
@@ -535,9 +537,29 @@ Output a factual observational record for just this segment."""
                 )
                 
                 if response and hasattr(response, 'output_text'):
-                    sub_narratives.append(response.output_text)
+                    return (i, response.output_text)
                 else:
                     raise ValueError(f"Invalid response for chunk {i+1}")
+            
+            # Process chunks in parallel (up to 10 concurrent for Tier 4)
+            max_workers = min(10, len(chunks))
+            print(f"🚀 Processing {len(chunks)} narrative chunks in parallel ({max_workers} workers)...")
+            
+            sub_narratives_dict = {}
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {executor.submit(process_chunk, (i, chunk)): i for i, chunk in enumerate(chunks)}
+                
+                for future in as_completed(futures):
+                    try:
+                        i, narrative_text = future.result(timeout=180)
+                        sub_narratives_dict[i] = narrative_text
+                        print(f"✅ Chunk {i+1}/{len(chunks)} complete")
+                    except Exception as e:
+                        print(f"❌ Chunk processing failed: {e}")
+                        raise
+            
+            # Reconstruct in order
+            sub_narratives = [sub_narratives_dict[i] for i in sorted(sub_narratives_dict.keys())]
             
             # Now combine all sub-narratives into final coherent narrative
             print(f"🔗 Combining {len(sub_narratives)} narrative segments...")
