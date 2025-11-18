@@ -524,15 +524,17 @@ def main():
                         log_dir.mkdir(exist_ok=True)
                         log_file = log_dir / f"process_{job_id}.log"
                         
-                        with open(log_file, 'w') as log_f:
-                            process = subprocess.Popen(
-                                [sys.executable, 'process_video_background.py', job_id],
-                                start_new_session=True,
-                                stdout=log_f,
-                                stderr=subprocess.STDOUT,
-                                cwd=os.getcwd(),  # Ensure correct working directory
-                                env=os.environ.copy()  # Ensure environment variables are passed
-                            )
+                        # Open log file without 'with' so it stays open for the subprocess
+                        log_f = open(log_file, 'w', buffering=1)  # Line buffering
+                        process = subprocess.Popen(
+                            [sys.executable, 'process_video_background.py', job_id],
+                            start_new_session=True,
+                            stdout=log_f,
+                            stderr=subprocess.STDOUT,
+                            cwd=os.getcwd(),  # Ensure correct working directory
+                            env=os.environ.copy()  # Ensure environment variables are passed
+                        )
+                        # Don't close log_f - let subprocess inherit it
                         
                         st.success(f"✅ Processing started in background (Job ID: {job_id})")
                         st.info("🔄 **You can safely close your browser.** Processing will continue independently.")
