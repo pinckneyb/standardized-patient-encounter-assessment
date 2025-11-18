@@ -58,6 +58,8 @@ assessments/
 
 # Error logs
 logs/
+error_logs/
+process_logs/
 
 # Backup files
 *_backup_*.py

@@ -5,6 +5,8 @@ A video analysis application with scrollable output container.
 
 import streamlit as st
 import os
+import sys
+import subprocess
 from pathlib import Path
 from datetime import datetime
 from utils.error_logger import get_error_logger
@@ -470,10 +472,8 @@ def main():
                 
                 # Analysis button
                 if st.button("🚀 Start Analysis", type="primary"):
-                    import subprocess
-                    import sys
-                    from pathlib import Path
                     from db_manager import AnalysisJobManager
+                    import uuid
                     
                     error_logger = get_error_logger()
                     
@@ -485,7 +485,6 @@ def main():
                     db = AnalysisJobManager()
                     
                     # Generate job_id first
-                    import uuid
                     job_id = str(uuid.uuid4())[:8]
                     
                     # Save uploaded video to persistent temp location with job_id in filename
@@ -518,21 +517,29 @@ def main():
                     error_logger.log_info("job_creation", job_id, video_filename, 
                                          f"Job created: profile={profile}, fps={fps}, batch_size={batch_size}, size={video_size:.1f}MB")
                     
-                    # Launch background processing subprocess
+                    # Launch background processing subprocess with proper logging
                     try:
-                        process = subprocess.Popen(
-                            [sys.executable, 'process_video_background.py', job_id],
-                            start_new_session=True,
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL
-                        )
+                        # Create process log file for debugging
+                        log_dir = Path("process_logs")
+                        log_dir.mkdir(exist_ok=True)
+                        log_file = log_dir / f"process_{job_id}.log"
+                        
+                        with open(log_file, 'w') as log_f:
+                            process = subprocess.Popen(
+                                [sys.executable, 'process_video_background.py', job_id],
+                                start_new_session=True,
+                                stdout=log_f,
+                                stderr=subprocess.STDOUT,
+                                cwd=os.getcwd(),  # Ensure correct working directory
+                                env=os.environ.copy()  # Ensure environment variables are passed
+                            )
                         
                         st.success(f"✅ Processing started in background (Job ID: {job_id})")
                         st.info("🔄 **You can safely close your browser.** Processing will continue independently.")
                         st.info("💡 Refresh this page later to check the status of your analysis.")
                         
                         error_logger.log_info("subprocess_launch", job_id, video_filename,
-                                             f"Background subprocess launched with PID: {process.pid}")
+                                             f"Background subprocess launched with PID: {process.pid}, log: {log_file}")
                     except Exception as e:
                         error_msg = f"Failed to launch background process: {str(e)}"
                         st.error(f"❌ {error_msg}")
