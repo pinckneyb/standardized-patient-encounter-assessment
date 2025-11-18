@@ -13,6 +13,7 @@ from datetime import datetime
 import traceback
 import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Callable
 
 
 def get_output_dir(video_filename: str, job_id: str) -> Path:
@@ -64,6 +65,95 @@ def save_analysis_file(content: str, category: str, video_filename: str, job_id:
         f.write(content)
     
     return str(filepath)
+
+
+def run_stage_with_timeout(stage_name: str, timeout_seconds: int, callable_func: Callable, 
+                           db, job_id: str, error_logger, video_filename: str):
+    """
+    Execute a processing stage with timeout protection, heartbeat updates, and error handling.
+    
+    This wrapper ensures:
+    1. Heartbeat updates every 30 seconds to prove process is alive
+    2. Timeout enforcement to prevent infinite hangs
+    3. Proper error logging and database updates on failure
+    4. Clean recovery even if API calls stall
+    
+    NOTE: This wrapper does NOT update the stage in the database. The callable itself
+    is responsible for its own stage transitions. This prevents duplicate stage updates.
+    
+    Args:
+        stage_name: Name of the stage (for logging only, not DB updates)
+        timeout_seconds: Maximum execution time before forcing timeout
+        callable_func: The function to execute (must return result or raise exception)
+        db: Database manager instance
+        job_id: Job ID for tracking
+        error_logger: Error logger instance
+        video_filename: Video filename for logging
+        
+    Returns:
+        Result from callable_func
+        
+    Raises:
+        Exception: If stage times out or callable_func fails
+    """
+    import threading
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+    
+    # Initialize heartbeat (but don't update stage - let callable handle it)
+    db.update_heartbeat(job_id)
+    error_logger.log_stage_entry(stage_name, job_id, video_filename)
+    print(f"\n{'='*60}")
+    print(f"⏱️  Starting stage: {stage_name} (timeout: {timeout_seconds}s)")
+    print(f"{'='*60}")
+    
+    # Heartbeat thread to update DB every 30 seconds
+    stop_heartbeat = threading.Event()
+    
+    def heartbeat_worker():
+        while not stop_heartbeat.is_set():
+            stop_heartbeat.wait(30)  # Update every 30 seconds
+            if not stop_heartbeat.is_set():
+                try:
+                    db.update_heartbeat(job_id)
+                    print(f"💓 Heartbeat: {stage_name} still running...")
+                except Exception as e:
+                    error_logger.log_error(stage_name, job_id, video_filename,
+                                         f"Heartbeat update failed: {str(e)}", e)
+    
+    heartbeat_thread = threading.Thread(target=heartbeat_worker, daemon=True)
+    heartbeat_thread.start()
+    
+    try:
+        # Execute callable with timeout using ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(callable_func)
+            try:
+                result = future.result(timeout=timeout_seconds)
+                print(f"✅ Stage {stage_name} completed successfully")
+                error_logger.log_stage_exit(stage_name, job_id, video_filename, success=True)
+                return result
+                
+            except FutureTimeoutError:
+                # Timeout - cancel the future and mark as failed
+                future.cancel()
+                error_msg = f"Stage '{stage_name}' timed out after {timeout_seconds} seconds"
+                error_logger.log_error(stage_name, job_id, video_filename, error_msg, None)
+                db.mark_error(job_id, error_msg)
+                print(f"❌ TIMEOUT: {error_msg}")
+                raise Exception(error_msg)
+                
+            except Exception as e:
+                # Callable raised an exception
+                error_msg = f"Stage '{stage_name}' failed: {str(e)}"
+                error_logger.log_error(stage_name, job_id, video_filename, error_msg, e)
+                db.mark_error(job_id, error_msg)
+                print(f"❌ ERROR: {error_msg}")
+                raise
+                
+    finally:
+        # Stop heartbeat thread
+        stop_heartbeat.set()
+        heartbeat_thread.join(timeout=2)
 
 
 def process_video_job(job_id: str):
@@ -408,25 +498,34 @@ def process_video_job(job_id: str):
         print(f"💾 Final frame transcript saved: {len(transcript)} characters")
         db.update_stage(job_id, 'frames_analyzed', progress_details="All frames analyzed successfully")
         
-        # Phase 5: Create enhanced narrative
+        # Phase 5: Create enhanced narrative WITH TIMEOUT PROTECTION
         print("✨ Phase 5: Narrative Synthesis (AI)")
-        error_logger.log_stage_entry("narrative_synthesis", job_id, video_filename)
-        db.update_stage(job_id, 'creating_narrative', progress_details="Synthesizing narrative from analysis")
         events = gpt5.get_event_timeline()
         
-        enhanced_narrative = gpt5.create_enhanced_narrative(
-            transcript=transcript,
-            events=events,
-            audio_transcript=audio_transcript,
-            profile=selected_profile
-        )
+        def create_narrative():
+            """Wrapper for narrative creation with proper error checking."""
+            db.update_stage(job_id, 'creating_narrative', 
+                          progress_details="Creating enhanced narrative from video analysis")
+            narrative = gpt5.create_enhanced_narrative(
+                transcript=transcript,
+                events=events,
+                audio_transcript=audio_transcript,
+                profile=selected_profile
+            )
+            if narrative.startswith("Error during"):
+                raise Exception(f"Narrative enhancement failed: {narrative}")
+            return narrative
         
-        if enhanced_narrative.startswith("Error during"):
-            error_logger.log_error("narrative_synthesis", job_id, video_filename,
-                                 f"Narrative enhancement failed: {enhanced_narrative}", None)
-            db.mark_error(job_id, f"Narrative enhancement failed: {enhanced_narrative}")
-            print(f"❌ Narrative enhancement failed: {enhanced_narrative}")
-            raise Exception(enhanced_narrative)
+        # Execute with 10-minute timeout and heartbeat monitoring
+        enhanced_narrative = run_stage_with_timeout(
+            stage_name='creating_narrative',
+            timeout_seconds=600,  # 10 minutes max
+            callable_func=create_narrative,
+            db=db,
+            job_id=job_id,
+            error_logger=error_logger,
+            video_filename=video_filename
+        )
         
         db.save_narrative(job_id, enhanced_narrative)
         db.update_stage(job_id, 'narrative_created', progress_details="Enhanced narrative created successfully")
@@ -434,45 +533,69 @@ def process_video_job(job_id: str):
             enhanced_narrative, 'narrative', video_filename, job_id
         )
         print(f"📄 Narrative saved: {narrative_file}")
-        error_logger.log_stage_exit("narrative_synthesis", job_id, video_filename, success=True)
         
-        # Phase 6: Generate medical assessment (if applicable)
+        # Phase 6: Generate medical assessment (if applicable) WITH TIMEOUT PROTECTION
         assessment_report = ""
         if profile == "Medical Assessment":
             print("📊 Phase 6: Medical Assessment (AI)")
-            error_logger.log_stage_entry("assessment_generation", job_id, video_filename)
-            db.update_stage(job_id, 'generating_assessment', 
-                          progress_details="Generating medical assessment report")
-            assessment_report = gpt5.assess_standardized_patient_encounter(enhanced_narrative)
             
-            if assessment_report.startswith("Error during"):
-                error_logger.log_error("assessment_generation", job_id, video_filename,
-                                     f"Assessment generation failed: {assessment_report}", None)
-                db.mark_error(job_id, f"Assessment generation failed: {assessment_report}")
-                print(f"❌ Assessment generation failed: {assessment_report}")
-                raise Exception(assessment_report)
+            def create_assessment():
+                """Wrapper for assessment creation with proper error checking."""
+                db.update_stage(job_id, 'generating_assessment', 
+                              progress_details="Generating medical assessment report")
+                assessment = gpt5.assess_standardized_patient_encounter(enhanced_narrative)
+                if assessment.startswith("Error during"):
+                    raise Exception(f"Assessment generation failed: {assessment}")
+                return assessment
+            
+            # Execute with 5-minute timeout and heartbeat monitoring
+            assessment_report = run_stage_with_timeout(
+                stage_name='generating_assessment',
+                timeout_seconds=300,  # 5 minutes max
+                callable_func=create_assessment,
+                db=db,
+                job_id=job_id,
+                error_logger=error_logger,
+                video_filename=video_filename
+            )
             
             db.save_assessment(job_id, assessment_report)
             assessment_file = save_analysis_file(
                 assessment_report, 'assessment', video_filename, job_id
             )
             print(f"📄 Assessment saved: {assessment_file}")
-            error_logger.log_stage_exit("assessment_generation", job_id, video_filename, success=True)
             
-            # Generate PDF report in job output directory
-            print("📋 Generating PDF report...")
+            # Phase 7: Generate PDF report WITH TIMEOUT PROTECTION
+            print("📋 Phase 7: PDF Generation")
             from pdf_generator import create_assessment_pdf
             
             output_dir = get_output_dir(video_filename, job_id)
             pdf_path = output_dir / "report.pdf"
             
-            try:
+            def create_pdf():
+                """Wrapper for PDF generation with proper error checking."""
+                db.update_stage(job_id, 'generating_pdf', 
+                              progress_details="Generating PDF report")
                 create_assessment_pdf(assessment_report, str(pdf_path))
                 db.save_pdf_path(job_id, str(pdf_path))
                 db.save_output_dir(job_id, str(output_dir))
-                print(f"📄 PDF report saved: {pdf_path}")
+                return str(pdf_path)
+            
+            try:
+                # Execute with 3-minute timeout and heartbeat monitoring
+                pdf_result = run_stage_with_timeout(
+                    stage_name='generating_pdf',
+                    timeout_seconds=180,  # 3 minutes max
+                    callable_func=create_pdf,
+                    db=db,
+                    job_id=job_id,
+                    error_logger=error_logger,
+                    video_filename=video_filename
+                )
+                
+                print(f"📄 PDF report saved: {pdf_result}")
                 error_logger.log_info("pdf_generation", job_id, video_filename,
-                                     f"PDF report generated successfully: {pdf_path}")
+                                     f"PDF report generated successfully: {pdf_result}")
             except Exception as pdf_error:
                 error_logger.log_error("pdf_generation", job_id, video_filename,
                                       f"PDF generation failed: {str(pdf_error)}", pdf_error)

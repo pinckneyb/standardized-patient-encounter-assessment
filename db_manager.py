@@ -53,6 +53,13 @@ class AnalysisJobManager:
                             ) THEN
                                 ALTER TABLE analysis_jobs ADD COLUMN output_dir TEXT;
                             END IF;
+                            
+                            IF NOT EXISTS (
+                                SELECT 1 FROM information_schema.columns 
+                                WHERE table_name='analysis_jobs' AND column_name='last_heartbeat'
+                            ) THEN
+                                ALTER TABLE analysis_jobs ADD COLUMN last_heartbeat TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+                            END IF;
                         END $$;
                     """)
                     conn.commit()
@@ -185,6 +192,21 @@ class AnalysisJobManager:
                 )
                 conn.commit()
     
+    def update_heartbeat(self, job_id: str):
+        """Update job heartbeat to indicate process is still alive."""
+        try:
+            with self._get_connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "UPDATE analysis_jobs SET last_heartbeat = CURRENT_TIMESTAMP WHERE job_id = %s",
+                        (job_id,)
+                    )
+                    conn.commit()
+        except Exception as e:
+            # Don't fail the job if heartbeat update fails - just log it
+            self.error_logger.log_error("database", job_id, None, 
+                                       f"Failed to update heartbeat: {str(e)}", e)
+    
     def mark_error(self, job_id: str, error_message: str):
         """Mark job as failed with error message."""
         try:
@@ -219,9 +241,36 @@ class AnalysisJobManager:
                 return [dict(row) for row in results]
     
     def get_active_jobs(self) -> List[Dict[str, Any]]:
-        """Get all active jobs (queued or in_progress)."""
+        """
+        Get all active jobs (queued or in_progress).
+        Automatically detects and marks stale jobs (heartbeat >120s old) as failed.
+        """
         with self._get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                # First, mark stale jobs as failed
+                # A job is stale if last_heartbeat is more than 120 seconds old
+                cur.execute("""
+                    UPDATE analysis_jobs
+                    SET status = 'failed',
+                        error_message = 'Process died - no heartbeat for >2 minutes',
+                        current_stage = 'error'
+                    WHERE status = 'in_progress'
+                      AND last_heartbeat IS NOT NULL
+                      AND last_heartbeat < (CURRENT_TIMESTAMP - INTERVAL '120 seconds')
+                      AND error_message IS NULL
+                    RETURNING job_id
+                """)
+                stale_jobs = cur.fetchall()
+                
+                if stale_jobs:
+                    stale_count = len(stale_jobs)
+                    self.error_logger.log_error("stale_job_detection", None, None,
+                                               f"Marked {stale_count} stale jobs as failed", None)
+                    print(f"⚠️  Detected and marked {stale_count} stale jobs as failed")
+                
+                conn.commit()
+                
+                # Now fetch active jobs (excluding the stale ones we just marked)
                 cur.execute("""
                     SELECT * FROM analysis_jobs 
                     WHERE status IN ('queued', 'in_progress')
