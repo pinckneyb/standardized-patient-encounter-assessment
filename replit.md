@@ -32,13 +32,14 @@ Preferred communication style: Simple, everyday language.
 -   **Resolution Control**: Users can reduce video processing resolution for faster analysis and lower memory usage.
 
 ### Audio Transcription System
--   **AI-Powered Speaker Diarization**: Uses GPT-4o-mini to intelligently identify speakers (Student vs Patient) based on conversational context.
--   **Clean Transcript Generation**: OpenAI Whisper-1 provides accurate transcription, then GPT-4o-mini adds speaker labels.
+-   **AI-Powered Speaker Diarization**: Uses GPT-5 mini with Responses API to perform evidence-based speaker identification with stable speaker IDs, role tracking, and explicit evidence citations.
+-   **Sophisticated Role Assignment**: Supports multiple roles (patient, student, resident, attending, nurse, tech, staff, family, unknown) based on explicit textual evidence only.
+-   **Clean Transcript Generation**: OpenAI Whisper-1 provides accurate transcription, then GPT-5 mini adds sophisticated speaker labels with confidence tracking.
 -   **FFmpeg Audio Extraction**: Extracts audio as 16kHz mono WAV for narrative synthesis.
 
 ### API Architecture
--   **OpenAI Responses API**: Used for all analysis stages (frame, narrative, assessment) with `store=True` and `previous_response_id` for stateful context.
--   **Model**: GPT-4o-mini is employed across all analysis stages.
+-   **OpenAI Responses API**: Used for all analysis stages (frame, narrative, assessment, diarization) with `store=True` and `previous_response_id` for stateful context.
+-   **Model**: GPT-4o-mini is employed for frame analysis, narrative, and assessment stages. GPT-5 mini is used for speaker diarization.
 
 ### Advanced Features
 -   **Context Continuity**: Sophisticated context management ensures narrative flow.
@@ -50,8 +51,10 @@ Preferred communication style: Simple, everyday language.
 ## External Dependencies
 
 ### AI Services
--   **OpenAI Responses API**: For AI analysis (frame analysis, narrative generation, medical assessment).
--   **OpenAI Transcription API**: Specifically `gpt-4o-mini-transcribe` for streaming audio transcription.
+-   **OpenAI Responses API**: For AI analysis (frame analysis, narrative generation, medical assessment, speaker diarization).
+-   **OpenAI Transcription API**: Whisper-1 for streaming audio transcription.
+-   **GPT-5 mini**: Fast, cost-efficient model for speaker diarization with evidence-based role assignment.
+-   **GPT-4o-mini**: Used for frame analysis, narrative synthesis, and medical assessment generation.
 
 ### Video Processing
 -   **FFmpeg**: Primary library for video frame and audio extraction.
@@ -59,7 +62,8 @@ Preferred communication style: Simple, everyday language.
 -   **PIL/Pillow**: Used for image manipulation.
 
 ### Audio Processing
--   **OpenAI gpt-4o-mini-transcribe**: For streaming audio transcription.
+-   **OpenAI Whisper-1**: For streaming audio transcription.
+-   **GPT-5 mini**: For sophisticated speaker diarization with evidence tracking.
 
 ### Web Framework and UI
 -   **Streamlit**: Provides the web application framework.

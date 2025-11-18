@@ -272,7 +272,7 @@ def extract_audio_from_video(video_path: str, audio_path: str = None) -> str:
 
 def diarize_transcript_with_gpt4o(raw_transcript: str, api_key: str) -> str:
     """
-    Use GPT-4o-mini with enhanced reasoning to perform evidence-based speaker diarization.
+    Use GPT-5 mini with Responses API to perform evidence-based speaker diarization.
     Uses sophisticated role identification with stable speaker IDs and explicit evidence tracking.
     
     Args:
@@ -287,11 +287,11 @@ def diarize_transcript_with_gpt4o(raw_transcript: str, api_key: str) -> str:
     import json
     
     try:
-        print("🎯 Performing enhanced AI-based speaker diarization with GPT-4o-mini...")
+        print("🎯 Performing enhanced AI-based speaker diarization with GPT-5 mini (Responses API)...")
         
         client = OpenAI(
             api_key=api_key,
-            timeout=httpx.Timeout(180.0, connect=10.0)  # Increased timeout for reasoning
+            timeout=httpx.Timeout(180.0, connect=10.0)
         )
         
         diarization_prompt = f"""You are a meticulous medical-encounter diarizer. Your job is to convert a raw, unstructured transcript of a clinical encounter into a clean, role-aware conversation log with durable speaker IDs and evidence-backed roles. Encounters often include multiple clinicians, repeated handoffs, sarcasm, interruptions, and patients who challenge staff. Never assume roles from question/answer patterns or clinical stereotypes. Only commit to a role when there is explicit textual evidence.
@@ -367,18 +367,14 @@ RAW TRANSCRIPT:
 
 Now provide the diarized transcript as valid JSON:"""
 
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are an expert medical encounter diarizer. Output valid JSON with evidence-based speaker identification. Use careful reasoning to avoid stereotypical role assumptions."},
-                {"role": "user", "content": diarization_prompt}
-            ],
-            temperature=0.1,
-            max_tokens=8000,
-            response_format={"type": "json_object"}
+        response = client.responses.create(
+            model="gpt-5-mini",
+            instructions="You are an expert medical encounter diarizer. Output valid JSON with evidence-based speaker identification. Use careful reasoning to avoid stereotypical role assumptions.",
+            input=diarization_prompt,
+            store=True
         )
         
-        diarized_json = response.choices[0].message.content.strip()
+        diarized_json = response.output_text.strip()
         
         # Parse JSON response and convert to readable transcript format
         try:
