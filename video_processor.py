@@ -246,12 +246,29 @@ class VideoProcessor:
                         print(f"Error decoding JPEG frame: {e}")
                         continue
             
-            # Wait for process to complete
-            process.wait()
+            # Wait for process to complete with timeout to prevent infinite hangs
+            # This is CRITICAL: FFmpeg can hang after yielding all frames, causing 99% hang bug
+            forced_termination = False
+            try:
+                process.wait(timeout=10.0)  # 10-second timeout for process termination
+            except subprocess.TimeoutExpired:
+                print("⚠️ FFmpeg did not terminate cleanly after 10s, force-killing process")
+                self.error_logger.log_info("video_extraction", self.job_id, self.video_filename,
+                                          "FFmpeg timeout triggered - force terminating hung process")
+                forced_termination = True
+                process.kill()
+                try:
+                    process.wait(timeout=2.0)
+                except subprocess.TimeoutExpired:
+                    print("⚠️ Force-kill also timed out, process may be zombied")
+                    self.error_logger.log_error("video_extraction", self.job_id, self.video_filename,
+                                              "FFmpeg force-kill timeout - process zombied", None)
             
-            if process.returncode != 0:
-                stderr = process.stderr.read().decode()
-                raise Exception(f"FFmpeg process failed: {stderr}")
+            # Check return code only if process terminated naturally (not force-killed)
+            if not forced_termination and process.returncode is not None and process.returncode != 0:
+                stderr = process.stderr.read().decode() if process.stderr else ""
+                # Legitimate FFmpeg error - raise to trigger OpenCV fallback
+                raise Exception(f"FFmpeg process failed with code {process.returncode}: {stderr}")
                 
         except Exception as e:
             print(f"FFmpeg streaming failed: {e}, falling back to OpenCV")
@@ -302,7 +319,15 @@ class VideoProcessor:
         consecutive_failures = 0
         max_failures = 10
         
+        max_expected_frames = int((end_time - start_time) * fps) + 10  # Add buffer for edge cases
+        frames_yielded = 0
+        
         while current_time < end_time and consecutive_failures < max_failures:
+            # CRITICAL: Prevent infinite loops if frame count exceeds expectations
+            if frames_yielded >= max_expected_frames:
+                print(f"⚠️ Reached max expected frames ({max_expected_frames}), stopping extraction")
+                break
+            
             frame_number = int(current_time * video_fps)
             
             # Try time-based positioning
@@ -339,6 +364,7 @@ class VideoProcessor:
                 
                 yield frame_data
                 frame_id += 1
+                frames_yielded += 1
                 consecutive_failures = 0
             else:
                 consecutive_failures += 1
