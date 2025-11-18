@@ -494,20 +494,23 @@ NARRATIVE TO ASSESS:
             for i, chunk in enumerate(chunks):
                 print(f"✍️  Processing chunk {i+1}/{len(chunks)}...")
                 
-                instructions = """You are a narrative synthesis expert. Create a coherent narrative segment from this portion of video analysis data."""
+                instructions = """You are a clinical documentation specialist. Create a factual observational record from this portion of video analysis data."""
                 
-                input_text = f"""Create a narrative for this segment of the video analysis:
+                input_text = f"""Create a clinical observational record for this segment of the video analysis:
 
 FRAME-BY-FRAME TRANSCRIPT (Segment {i+1}/{len(chunks)}):
 {chunk}
 
 SYNTHESIS REQUIREMENTS:
-- Create a flowing narrative for this time segment
-- Maintain chronological accuracy
-- Focus on storytelling while preserving factual accuracy
-- This is part {i+1} of {len(chunks)}, so begin/end smoothly for later integration
+- Write in flat, undramatic clinical language
+- Document only what can be directly seen and heard
+- Use objective, observational terminology
+- Maintain strict chronological accuracy
+- Avoid novelistic descriptions, dramatic embellishments, or inferred emotions
+- Use clinical documentation style (factual, neutral, precise)
+- This is part {i+1} of {len(chunks)}, so use consistent clinical tone
 
-Output a narrative for just this segment."""
+Output a factual observational record for just this segment."""
                 
                 response = self.client.responses.create(
                     model="gpt-4o-mini",
@@ -524,9 +527,9 @@ Output a narrative for just this segment."""
             # Now combine all sub-narratives into final coherent narrative
             print(f"🔗 Combining {len(sub_narratives)} narrative segments...")
             
-            combined_input = f"""You are a narrative synthesis expert. Combine these sequential narrative segments into one cohesive, flowing narrative.
+            combined_input = f"""You are a clinical documentation specialist. Combine these sequential observational records into one complete clinical record.
 
-NARRATIVE SEGMENTS:
+OBSERVATIONAL RECORD SEGMENTS:
 """
             for i, sub_narr in enumerate(sub_narratives):
                 combined_input += f"\n\n--- SEGMENT {i+1} ---\n{sub_narr}"
@@ -537,17 +540,20 @@ NARRATIVE SEGMENTS:
             combined_input += """
 
 SYNTHESIS REQUIREMENTS:
-- Merge these segments into one seamless narrative
-- Remove any redundancy or awkward transitions between segments
-- Maintain chronological flow
-- Integrate audio context if relevant
-- Create a polished, coherent final narrative
+- Merge these segments into one complete observational record
+- Write in flat, undramatic clinical language
+- Document only what can be directly seen and heard
+- Remove redundancy while maintaining all factual observations
+- Maintain strict chronological accuracy
+- Use objective, clinical documentation style throughout
+- Avoid novelistic descriptions, dramatic embellishments, or inferred emotions
+- Use clinical documentation style (factual, neutral, precise)
 
-Output the complete unified narrative."""
+Output the complete unified clinical observational record."""
             
             final_response = self.client.responses.create(
                 model="gpt-4o-mini",
-                instructions="You are a narrative synthesis expert creating a unified narrative from multiple segments.",
+                instructions="You are a clinical documentation specialist creating a unified observational record from multiple segments.",
                 input=combined_input,
                 store=True
             )
@@ -613,10 +619,10 @@ Output the complete unified narrative."""
         
         try:
             # Instructions for narrative enhancement
-            instructions = """You are a narrative synthesis expert. Your task is to create a coherent, flowing narrative from frame-by-frame video analysis data."""
+            instructions = """You are a clinical documentation specialist. Your task is to create a factual, observational record from frame-by-frame video analysis data."""
             
             # Prepare input with all available data
-            input_text = f"""Create a coherent narrative from the following video analysis data:
+            input_text = f"""Create a clinical observational record from the following video analysis data:
 
 FRAME-BY-FRAME TRANSCRIPT:
 {transcript}
@@ -633,14 +639,15 @@ EVENT TIMELINE:
             input_text += """
 
 SYNTHESIS REQUIREMENTS:
-- Create a flowing, coherent narrative that reads naturally
-- Integrate visual and audio information seamlessly
-- Maintain chronological accuracy with timestamps
-- Focus on storytelling while preserving factual accuracy
-- Use appropriate tone for the content type
-- Ensure narrative continuity and logical flow
+- Write in flat, undramatic clinical language
+- Document only what can be directly seen and heard in the data
+- Use objective, observational terminology
+- Maintain strict chronological accuracy
+- Avoid novelistic descriptions, dramatic embellishments, or inferred emotions
+- Use clinical documentation style (factual, neutral, precise)
+- Do not interpret or speculate beyond documented observations
 
-Output a complete narrative that tells the story of what happened in this video."""
+Output a complete observational record documenting exactly what was seen and heard in this video."""
             
             # Make API call using Responses API
             response = self.client.responses.create(
