@@ -146,9 +146,10 @@ OUTPUT FORMAT (one JSON object per frame)
 RULES
 - Present tense. Concrete nouns and verbs. No inference or cause.
 - Prefer short clauses over adjectives. Keep to ≤65 words total per frame.
-- If nothing changes from prior frame, write: {"timecode":...,"delta":"no material change"} instead of repeating full state.
+- **CRITICAL DELTA ENCODING**: Only describe what has CHANGED from the previous frame. If nothing changes, write: {"timecode":...,"delta":"no material change"}. If only one thing changes (e.g., patient shifts position), write: {"timecode":...,"delta":"patient shifted in chair"}. ONLY provide full JSON when significant changes occur (new person enters, new object appears, major action).
 - Name people by their roles: student, standardized_patient, observer, proctor.
-- Focus on observable actions, positions, and objects only.""",
+- Focus on observable actions, positions, and objects only.
+- **DATA EFFICIENCY**: Minimize redundancy. The frame-to-frame differences are what matter, not repeating static scene elements.""",
             "rescan_prompt": """Reanalyze the standardized patient encounter segment between {start_time} and {end_time} with enhanced detail for frame description.
 
 For each frame in this segment, provide the same structured JSON format but with increased attention to:

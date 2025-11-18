@@ -460,11 +460,11 @@ NARRATIVE TO ASSESS:
             print(f"Error creating assessment: {error_msg}")
             return f"Error during assessment: {error_msg}"
 
-    def create_enhanced_narrative(self, transcript: str, events: List[Dict], 
-                                audio_transcript: str = "", yamnet_results: Dict = None,
-                                profile: Dict[str, Any] = None) -> str:
+    def create_enhanced_narrative_chunked(self, transcript: str, events: List[Dict], 
+                                        audio_transcript: str = "", yamnet_results: Dict = None,
+                                        profile: Dict[str, Any] = None) -> str:
         """
-        Create enhanced narrative using GPT-5 Responses API (Pass 2).
+        Create enhanced narrative using chunked processing for large transcripts.
         
         Args:
             transcript: Raw transcript from frame analysis
@@ -476,6 +476,141 @@ NARRATIVE TO ASSESS:
         Returns:
             Enhanced coherent narrative
         """
+        MAX_CHUNK_SIZE = 150000  # ~150KB per chunk to stay well under context limits
+        
+        try:
+            # If transcript is small enough, use standard method
+            if len(transcript) <= MAX_CHUNK_SIZE:
+                return self.create_enhanced_narrative(transcript, events, audio_transcript, yamnet_results, profile)
+            
+            print(f"📊 Large transcript detected ({len(transcript):,} chars). Using chunked processing...")
+            
+            # Split transcript into chunks by finding natural break points (JSON array boundaries)
+            chunks = self._split_transcript_into_chunks(transcript, MAX_CHUNK_SIZE)
+            print(f"📦 Split into {len(chunks)} chunks")
+            
+            # Process each chunk into a sub-narrative
+            sub_narratives = []
+            for i, chunk in enumerate(chunks):
+                print(f"✍️  Processing chunk {i+1}/{len(chunks)}...")
+                
+                instructions = """You are a narrative synthesis expert. Create a coherent narrative segment from this portion of video analysis data."""
+                
+                input_text = f"""Create a narrative for this segment of the video analysis:
+
+FRAME-BY-FRAME TRANSCRIPT (Segment {i+1}/{len(chunks)}):
+{chunk}
+
+SYNTHESIS REQUIREMENTS:
+- Create a flowing narrative for this time segment
+- Maintain chronological accuracy
+- Focus on storytelling while preserving factual accuracy
+- This is part {i+1} of {len(chunks)}, so begin/end smoothly for later integration
+
+Output a narrative for just this segment."""
+                
+                response = self.client.responses.create(
+                    model="gpt-4o-mini",
+                    instructions=instructions,
+                    input=input_text,
+                    store=True
+                )
+                
+                if response and hasattr(response, 'output_text'):
+                    sub_narratives.append(response.output_text)
+                else:
+                    raise ValueError(f"Invalid response for chunk {i+1}")
+            
+            # Now combine all sub-narratives into final coherent narrative
+            print(f"🔗 Combining {len(sub_narratives)} narrative segments...")
+            
+            combined_input = f"""You are a narrative synthesis expert. Combine these sequential narrative segments into one cohesive, flowing narrative.
+
+NARRATIVE SEGMENTS:
+"""
+            for i, sub_narr in enumerate(sub_narratives):
+                combined_input += f"\n\n--- SEGMENT {i+1} ---\n{sub_narr}"
+            
+            if audio_transcript:
+                combined_input += f"\n\nAUDIO TRANSCRIPT (for context):\n{audio_transcript[:5000]}..."  # Include sample
+            
+            combined_input += """
+
+SYNTHESIS REQUIREMENTS:
+- Merge these segments into one seamless narrative
+- Remove any redundancy or awkward transitions between segments
+- Maintain chronological flow
+- Integrate audio context if relevant
+- Create a polished, coherent final narrative
+
+Output the complete unified narrative."""
+            
+            final_response = self.client.responses.create(
+                model="gpt-4o-mini",
+                instructions="You are a narrative synthesis expert creating a unified narrative from multiple segments.",
+                input=combined_input,
+                store=True
+            )
+            
+            if not final_response or not hasattr(final_response, 'output_text'):
+                raise ValueError("Invalid final narrative response")
+            
+            enhanced_narrative = final_response.output_text
+            
+            if isinstance(enhanced_narrative, str):
+                enhanced_narrative = enhanced_narrative.encode('utf-8', errors='replace').decode('utf-8')
+            
+            print(f"✅ Chunked narrative synthesis complete ({len(enhanced_narrative):,} chars)")
+            return enhanced_narrative
+            
+        except Exception as e:
+            error_msg = str(e).encode('utf-8', errors='replace').decode('utf-8')
+            print(f"Error in chunked narrative synthesis: {error_msg}")
+            return f"Error during narrative enhancement: {error_msg}"
+    
+    def _split_transcript_into_chunks(self, transcript: str, max_size: int) -> List[str]:
+        """Split transcript into chunks at natural boundaries (JSON array elements)."""
+        chunks = []
+        current_chunk = ""
+        
+        # Try to split by JSON entries (look for timecode patterns)
+        lines = transcript.split('\n')
+        
+        for line in lines:
+            # If adding this line would exceed max_size, start new chunk
+            if len(current_chunk) + len(line) > max_size and current_chunk:
+                chunks.append(current_chunk)
+                current_chunk = ""
+            
+            current_chunk += line + '\n'
+        
+        # Add final chunk
+        if current_chunk:
+            chunks.append(current_chunk)
+        
+        return chunks
+
+    def create_enhanced_narrative(self, transcript: str, events: List[Dict], 
+                                audio_transcript: str = "", yamnet_results: Dict = None,
+                                profile: Dict[str, Any] = None) -> str:
+        """
+        Create enhanced narrative using GPT-5 Responses API (Pass 2).
+        Automatically uses chunked processing for large transcripts.
+        
+        Args:
+            transcript: Raw transcript from frame analysis
+            events: Event timeline from frame analysis
+            audio_transcript: Audio transcription if available
+            yamnet_results: Audio classification results if available
+            profile: Analysis profile configuration
+            
+        Returns:
+            Enhanced coherent narrative
+        """
+        # Check if we need chunked processing
+        if len(transcript) > 150000:
+            return self.create_enhanced_narrative_chunked(transcript, events, audio_transcript, yamnet_results, profile)
+        
         try:
             # Instructions for narrative enhancement
             instructions = """You are a narrative synthesis expert. Your task is to create a coherent, flowing narrative from frame-by-frame video analysis data."""
