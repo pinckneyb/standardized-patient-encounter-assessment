@@ -123,10 +123,8 @@ def resume_analysis(job_id):
             error_logger.log_stage_entry("medical_assessment", job_id, video_filename)
             db.update_stage(job_id, 'generating_assessment', progress_details="Generating medical assessment report")
             
-            assessment_report = gpt5.generate_assessment_report(
-                narrative=enhanced_narrative,
-                audio_transcript=audio_transcript or "",
-                profile=selected_profile
+            assessment_report = gpt5.assess_standardized_patient_encounter(
+                narrative=enhanced_narrative
             )
             
             if assessment_report.startswith("Error"):
