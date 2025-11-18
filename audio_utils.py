@@ -287,7 +287,7 @@ def diarize_transcript_with_gpt4o(raw_transcript: str, api_key: str) -> str:
     import json
     
     try:
-        print("🎯 Performing enhanced AI-based speaker diarization with GPT-4o-mini (medium reasoning)...")
+        print("🎯 Performing enhanced AI-based speaker diarization with GPT-4o-mini...")
         
         client = OpenAI(
             api_key=api_key,
@@ -375,7 +375,6 @@ Now provide the diarized transcript as valid JSON:"""
             ],
             temperature=0.1,
             max_tokens=8000,
-            reasoning_effort="medium",  # Enhanced reasoning for complex diarization
             response_format={"type": "json_object"}
         )
         
