@@ -39,6 +39,13 @@ class AnalysisJobManager:
                             ) THEN
                                 ALTER TABLE analysis_jobs ADD COLUMN progress_details TEXT;
                             END IF;
+                            
+                            IF NOT EXISTS (
+                                SELECT 1 FROM information_schema.columns 
+                                WHERE table_name='analysis_jobs' AND column_name='pdf_path'
+                            ) THEN
+                                ALTER TABLE analysis_jobs ADD COLUMN pdf_path TEXT;
+                            END IF;
                         END $$;
                     """)
                     conn.commit()
@@ -153,11 +160,13 @@ class AnalysisJobManager:
     
     def save_pdf_path(self, job_id: str, pdf_path: str):
         """Save PDF file path."""
-        with self.get_connection() as conn:
-            conn.execute(
-                "UPDATE analysis_jobs SET pdf_path = %s WHERE job_id = %s",
-                (pdf_path, job_id)
-            )
+        with self._get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE analysis_jobs SET pdf_path = %s WHERE job_id = %s",
+                    (pdf_path, job_id)
+                )
+                conn.commit()
     
     def mark_error(self, job_id: str, error_message: str):
         """Mark job as failed with error message."""

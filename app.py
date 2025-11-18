@@ -316,32 +316,48 @@ def main():
                         if assessment_report:
                             with st.expander("📊 Assessment Report", expanded=True):
                                 display_assessment_report(assessment_report)
-                                
-                                from pdf_generator import create_assessment_pdf
-                                import tempfile
-                                
-                                try:
-                                    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_pdf:
-                                        pdf_path = create_assessment_pdf(
-                                            assessment_report,
-                                            tmp_pdf.name
-                                        )
-                                        
-                                        with open(pdf_path, 'rb') as pdf_file:
-                                            pdf_bytes = pdf_file.read()
-                                        
-                                        st.download_button(
-                                            label="📥 Download Assessment PDF",
-                                            data=pdf_bytes,
-                                            file_name=f"assessment_report_{video_filename}.pdf",
-                                            mime="application/pdf",
-                                            key="pdf_download_result"
-                                        )
-                                        
-                                        os.unlink(pdf_path)
-                                        
-                                except Exception as e:
-                                    st.error(f"Error generating PDF: {str(e)}")
+                        
+                        # Auto-generated PDF download
+                        pdf_path = job.get('pdf_path', '')
+                        if pdf_path and Path(pdf_path).exists():
+                            st.success("📄 **Professional PDF Report Available**")
+                            with open(pdf_path, 'rb') as pdf_file:
+                                pdf_bytes = pdf_file.read()
+                            
+                            st.download_button(
+                                label="📥 Download Assessment PDF Report",
+                                data=pdf_bytes,
+                                file_name=f"assessment_{video_filename}.pdf",
+                                mime="application/pdf",
+                                key="pdf_download_auto"
+                            )
+                        elif assessment_report:
+                            # Fallback: Generate PDF on-demand
+                            from pdf_generator import create_assessment_pdf
+                            import tempfile
+                            
+                            try:
+                                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_pdf:
+                                    pdf_path_temp = create_assessment_pdf(
+                                        assessment_report,
+                                        tmp_pdf.name
+                                    )
+                                    
+                                    with open(pdf_path_temp, 'rb') as pdf_file:
+                                        pdf_bytes = pdf_file.read()
+                                    
+                                    st.download_button(
+                                        label="📥 Generate & Download PDF",
+                                        data=pdf_bytes,
+                                        file_name=f"assessment_report_{video_filename}.pdf",
+                                        mime="application/pdf",
+                                        key="pdf_download_result"
+                                    )
+                                    
+                                    os.unlink(pdf_path_temp)
+                                    
+                            except Exception as e:
+                                st.error(f"Error generating PDF: {str(e)}")
                         
                         if st.button("🗑️ Clear Results"):
                             st.session_state.current_job_id = None

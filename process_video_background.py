@@ -447,7 +447,6 @@ def process_video_job(job_id: str):
             # Generate PDF report
             print("📋 Generating PDF report...")
             from pdf_generator import create_assessment_pdf
-            import os
             
             pdf_filename = f"{Path(video_filename).stem}_{job_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
             pdf_path = os.path.join("pdfs", pdf_filename)
