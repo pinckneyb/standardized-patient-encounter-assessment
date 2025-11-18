@@ -46,6 +46,13 @@ class AnalysisJobManager:
                             ) THEN
                                 ALTER TABLE analysis_jobs ADD COLUMN pdf_path TEXT;
                             END IF;
+                            
+                            IF NOT EXISTS (
+                                SELECT 1 FROM information_schema.columns 
+                                WHERE table_name='analysis_jobs' AND column_name='output_dir'
+                            ) THEN
+                                ALTER TABLE analysis_jobs ADD COLUMN output_dir TEXT;
+                            END IF;
                         END $$;
                     """)
                     conn.commit()
@@ -165,6 +172,16 @@ class AnalysisJobManager:
                 cur.execute(
                     "UPDATE analysis_jobs SET pdf_path = %s WHERE job_id = %s",
                     (pdf_path, job_id)
+                )
+                conn.commit()
+    
+    def save_output_dir(self, job_id: str, output_dir: str):
+        """Save output directory path to database."""
+        with self._get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE analysis_jobs SET output_dir = %s WHERE job_id = %s",
+                    (output_dir, job_id)
                 )
                 conn.commit()
     

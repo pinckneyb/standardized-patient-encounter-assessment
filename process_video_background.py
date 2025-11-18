@@ -15,9 +15,27 @@ import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
+def get_output_dir(video_filename: str, job_id: str) -> Path:
+    """
+    Get the output directory for a specific video analysis job.
+    Creates the directory if it doesn't exist.
+    
+    Args:
+        video_filename: Original video filename
+        job_id: Analysis job ID
+        
+    Returns:
+        Path object for the job's output directory
+    """
+    base_name = Path(video_filename).stem
+    output_dir = Path('outputs') / f"{base_name}_{job_id}"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
+
+
 def save_analysis_file(content: str, category: str, video_filename: str, job_id: str) -> str:
     """
-    Save analysis results to organized folders.
+    Save analysis results to per-job output folder.
     
     Args:
         content: The text content to save
@@ -28,21 +46,18 @@ def save_analysis_file(content: str, category: str, video_filename: str, job_id:
     Returns:
         Path to saved file
     """
-    # Create folder if it doesn't exist
-    folder_map = {
-        'transcript': 'transcripts',
-        'narrative': 'narratives',
-        'assessment': 'assessments'
+    # Get job-specific output directory
+    output_dir = get_output_dir(video_filename, job_id)
+    
+    # Use standardized filenames
+    filename_map = {
+        'transcript': 'transcript.txt',
+        'narrative': 'narrative.txt',
+        'assessment': 'assessment.txt'
     }
     
-    folder = folder_map.get(category, 'output')
-    Path(folder).mkdir(exist_ok=True)
-    
-    # Create filename with timestamp and job_id
-    base_name = Path(video_filename).stem
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    filename = f"{base_name}_{job_id}_{timestamp}.txt"
-    filepath = Path(folder) / filename
+    filename = filename_map.get(category, f'{category}.txt')
+    filepath = output_dir / filename
     
     # Save file
     with open(filepath, 'w', encoding='utf-8') as f:
@@ -444,16 +459,17 @@ def process_video_job(job_id: str):
             print(f"📄 Assessment saved: {assessment_file}")
             error_logger.log_stage_exit("assessment_generation", job_id, video_filename, success=True)
             
-            # Generate PDF report
+            # Generate PDF report in job output directory
             print("📋 Generating PDF report...")
             from pdf_generator import create_assessment_pdf
             
-            pdf_filename = f"{Path(video_filename).stem}_{job_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-            pdf_path = os.path.join("pdfs", pdf_filename)
+            output_dir = get_output_dir(video_filename, job_id)
+            pdf_path = output_dir / "report.pdf"
             
             try:
-                create_assessment_pdf(assessment_report, pdf_path)
-                db.save_pdf_path(job_id, pdf_path)
+                create_assessment_pdf(assessment_report, str(pdf_path))
+                db.save_pdf_path(job_id, str(pdf_path))
+                db.save_output_dir(job_id, str(output_dir))
                 print(f"📄 PDF report saved: {pdf_path}")
                 error_logger.log_info("pdf_generation", job_id, video_filename,
                                      f"PDF report generated successfully: {pdf_path}")

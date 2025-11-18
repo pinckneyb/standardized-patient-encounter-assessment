@@ -398,28 +398,43 @@ Use the following rubric categories:
 5. Professionalism
 6. Patient Education and Closure
 
+CRITICAL GRADING STANDARDS
+- Apply rigorous medical education standards typical of faculty assessors
+- Score conservatively: reserve 5s for truly exceptional performance, use 3s for adequate but unremarkable work
+- Default to mid-range scores (2-4); scores of 5 should be rare and reserved for outstanding demonstration
+- Identify specific deficiencies and missed opportunities in each category
+- Compare performance against expected competency for this stage of training
+
 INSTRUCTIONS
 - Base all judgments only on what is visible in the narrative (student speech and actions). Do not infer or imagine unstated behaviors.
 - For each category, provide:
-  • Concise score (1–5 scale: 1 = unsatisfactory, 3 = adequate, 5 = excellent).  
-  • One to two sentences of focused feedback citing specific observed moments.  
-- At the end, provide a short overall comment (≤4 sentences) summarizing strengths, weaknesses, and adherence to professional/educational standards.  
+  • Critical score (1–5 scale: 1 = unsatisfactory, 2 = needs improvement, 3 = adequate, 4 = good, 5 = exceptional).  
+  • Two to three sentences of CASE-SPECIFIC feedback citing exact observed moments from THIS encounter.
+  • Identify specific gaps, missed questions, or areas needing improvement.
+  • Reference the actual patient presentation and student's handling of THIS specific case.
+- At the end, provide an overall comment (3-5 sentences) that:
+  • Summarizes performance with specific references to THIS case
+  • Identifies concrete areas for improvement based on what was observed
+  • Notes any concerning patterns or missed critical elements
+  • Provides actionable feedback tied to THIS specific encounter
 
 OUTPUT FORMAT
 {{
-  "History Taking": {{"score": X, "feedback": "..."}},
-  "Physical Examination": {{"score": X, "feedback": "..."}},
-  "Communication Skills": {{"score": X, "feedback": "..."}},
-  "Clinical Reasoning": {{"score": X, "feedback": "..."}},
-  "Professionalism": {{"score": X, "feedback": "..."}},
-  "Patient Education and Closure": {{"score": X, "feedback": "..."}},
-  "Overall": "Concise summary paragraph."
+  "History Taking": {{"score": X, "feedback": "Case-specific critique with exact examples from this encounter..."}},
+  "Physical Examination": {{"score": X, "feedback": "Case-specific critique with exact examples from this encounter..."}},
+  "Communication Skills": {{"score": X, "feedback": "Case-specific critique with exact examples from this encounter..."}},
+  "Clinical Reasoning": {{"score": X, "feedback": "Case-specific critique with exact examples from this encounter..."}},
+  "Professionalism": {{"score": X, "feedback": "Case-specific critique with exact examples from this encounter..."}},
+  "Patient Education and Closure": {{"score": X, "feedback": "Case-specific critique with exact examples from this encounter..."}},
+  "Overall": "Case-specific summary analyzing THIS student's performance in THIS encounter, with concrete areas for improvement."
 }}
 
 RULES
 - No speculation, no invented dialogue or actions.  
-- Be neutral, objective, and concise.  
-- Emphasize alignment with established medical education standards.  
+- Be critical but fair - identify both strengths AND weaknesses with specific examples.
+- All feedback must reference THIS specific case and encounter.
+- Emphasize alignment with rigorous medical education standards.
+- Be more demanding than lenient - medical education requires high standards.
 
 NARRATIVE TO ASSESS:
 {narrative}"""
