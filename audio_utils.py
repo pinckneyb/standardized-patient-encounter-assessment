@@ -272,76 +272,156 @@ def extract_audio_from_video(video_path: str, audio_path: str = None) -> str:
 
 def diarize_transcript_with_gpt4o(raw_transcript: str, api_key: str) -> str:
     """
-    Use GPT-4o-mini to intelligently diarize a transcript based on conversational context.
-    Identifies Student (medical student) vs Patient speakers in standardized patient encounters.
+    Use GPT-4o-mini with enhanced reasoning to perform evidence-based speaker diarization.
+    Uses sophisticated role identification with stable speaker IDs and explicit evidence tracking.
     
     Args:
         raw_transcript: Raw transcript text without speaker labels
         api_key: OpenAI API key
         
     Returns:
-        str: Diarized transcript with "Student:" and "Patient:" labels
+        str: Diarized transcript with evidence-based speaker labels
     """
     from openai import OpenAI
     import httpx
+    import json
     
     try:
-        print("🎯 Performing AI-based speaker diarization with GPT-4o-mini...")
+        print("🎯 Performing enhanced AI-based speaker diarization with GPT-4o-mini (medium reasoning)...")
         
         client = OpenAI(
             api_key=api_key,
-            timeout=httpx.Timeout(120.0, connect=10.0)
+            timeout=httpx.Timeout(180.0, connect=10.0)  # Increased timeout for reasoning
         )
         
-        diarization_prompt = f"""You are analyzing a transcript from a standardized patient encounter in medical education.
+        diarization_prompt = f"""You are a meticulous medical-encounter diarizer. Your job is to convert a raw, unstructured transcript of a clinical encounter into a clean, role-aware conversation log with durable speaker IDs and evidence-backed roles. Encounters often include multiple clinicians, repeated handoffs, sarcasm, interruptions, and patients who challenge staff. Never assume roles from question/answer patterns or clinical stereotypes. Only commit to a role when there is explicit textual evidence.
 
-CONTEXT:
-- This is a conversation between TWO speakers: a medical student and a standardized patient
-- The STUDENT (medical student) typically asks questions, takes medical history, and performs examination
-- The PATIENT responds to questions, describes symptoms, and answers the student's inquiries
-- Students often introduce themselves, explain what they'll do, and use medical terminology
-- Patients describe their symptoms, experiences, and answer questions about their condition
+Your goals:
+1. Diarize: Chunk the transcript into ordered utterances with stable speaker_ids (S1, S2, …), preserving original order.
+2. Assign roles cautiously: role ∈ {{patient, student, resident, attending, nurse, tech, staff, family, unknown}} based on explicit evidence only (self-intro, third-party attribution, credentialed form of address like "Dr.", explicit job/relationship statements).
+3. Track evidence: For each speaker, maintain an evidence list that cites the exact phrases supporting role assignment, labeled by evidence_type ∈ {{self_identification, third_party_attribution, title_form_of_address, prior_utterance_consistency, content_hint}}. Content hints may nudge but can't alone raise confidence above 0.5.
+4. Disambiguate same-name collisions: If two different speakers use the same name (e.g., "Katie"), do not merge them unless there is explicit continuity evidence (same role, continuous presence, others addressing them consistently). Otherwise start a new speaker_id and record a possible_name_collision note.
+5. Avoid naive alternation: Do not rely on "Q/A alternation" to infer roles. Many turns invert norms (patients ask questions; clinicians answer with "Mm-hmm," etc.).
+6. Handle corrections & contradictions: If a later utterance contradicts an earlier role assignment (e.g., someone later says "I'm Dr. Patel"), update that speaker's role_history and adjust current role and confidence.
+7. Mark addressed targets (optional but preferred): If an utterance clearly targets someone, set addressed_to with the target's speaker_id or "group".
+8. Keep it deterministic & parseable: Output valid JSON exactly matching the schema below—no extra commentary.
 
-TASK:
-Identify who is speaking for each segment of the dialogue and format it with speaker labels.
-Use "Student:" for the medical student and "Patient:" for the standardized patient.
+Output schema (strict JSON):
+{{
+  "speakers": [
+    {{
+      "speaker_id": "S1",
+      "display_name": "optional string if explicitly stated, else null",
+      "role": "patient|student|resident|attending|nurse|tech|staff|family|unknown",
+      "confidence": 0.0,
+      "evidence": [
+        {{
+          "quote": "exact supporting phrase",
+          "evidence_type": "self_identification|third_party_attribution|title_form_of_address|prior_utterance_consistency|content_hint"
+        }}
+      ],
+      "role_history": [
+        {{"role": "…", "reason": "…"}}
+      ],
+      "notes": "optional; e.g., possible_name_collision"
+    }}
+  ],
+  "utterances": [
+    {{
+      "idx": 1,
+      "speaker_id": "Sx",
+      "text": "verbatim utterance",
+      "addressed_to": "Sy|group|null",
+      "tags": ["sarcasm","interruption","handoff","ask_info","gives_history","medication","substance","request_item","disposition","unclear_role"],
+      "time": null
+    }}
+  ]
+}}
 
-IMPORTANT RULES:
-1. Look for conversational patterns: questions vs answers, introductions, medical terminology
-2. Students typically start by introducing themselves and explaining the encounter
-3. Every line should start with either "Student:" or "Patient:"
-4. Preserve the exact original text after adding speaker labels
-5. Be intelligent about context - if someone is asking medical history questions, they're likely the Student
-6. If someone is describing symptoms or answering questions, they're likely the Patient
+Evidence rules:
+- Self-identification outranks everything: e.g., "I'm Katie. I'm a medical student." ⇒ role=student (confidence ≥ 0.85).
+- Title/credential address: "Dr. Patel" ⇒ role is some physician. If they then say "I'm a resident," prefer resident.
+- Third-party attribution: "This your student?" / "Yeah." ⇒ raise confidence modestly (≤ 0.7) unless later contradicted.
+- Content hints (asking ROS, giving discharge, etc.) increase confidence slightly but cannot alone exceed 0.5.
+- If two speakers both seem to be "Katie," create Sx and Sy with notes: "possible_name_collision: Katie" and separate evidence trails.
+
+Conflict resolution:
+- When a later utterance clarifies a role (e.g., "My name is Dr. Patel. … I'm a resident doctor."), update that speaker's role going forward and append to role_history.
+- If prior utterances were mis-attributed, do not rewrite history; instead add a tags:["unclear_role"] on those utterances and keep roles conservative until clarity emerges.
+
+Tagging guidance (non-exhaustive):
+- handoff (new clinician enters or references "resident/attending")
+- request_item (e.g., "Can I get a shirt?" "crackers?")
+- substance (drug, alcohol, tobacco disclosure)
+- disposition (discharge, follow-up)
+- sarcasm / interruption
+- unclear_role (speaker's role not yet evidence-supported)
+
+Formatting & safety:
+- Keep JSON under 2 MB; if transcript is huge, still return all utterances.
+- Never invent timestamps; leave "time": null unless provided.
+- Quote evidence verbatim; no paraphrasing.
 
 RAW TRANSCRIPT:
 {raw_transcript}
 
-OUTPUT FORMAT:
-Student: [exact text from original]
-Patient: [exact text from original]
-Student: [exact text from original]
-...and so on
-
-Now provide the diarized transcript:"""
+Now provide the diarized transcript as valid JSON:"""
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are an expert at speaker diarization for medical education transcripts. Identify speakers based on conversational context and patterns."},
+                {"role": "system", "content": "You are an expert medical encounter diarizer. Output valid JSON with evidence-based speaker identification. Use careful reasoning to avoid stereotypical role assumptions."},
                 {"role": "user", "content": diarization_prompt}
             ],
             temperature=0.1,
-            max_tokens=4000
+            max_tokens=8000,
+            reasoning_effort="medium",  # Enhanced reasoning for complex diarization
+            response_format={"type": "json_object"}
         )
         
-        diarized_transcript = response.choices[0].message.content.strip()
+        diarized_json = response.choices[0].message.content.strip()
         
-        print(f"✅ AI diarization complete: {len(diarized_transcript)} characters")
-        return diarized_transcript
+        # Parse JSON response and convert to readable transcript format
+        try:
+            data = json.loads(diarized_json)
+            
+            # Build readable transcript with role labels
+            formatted_lines = []
+            speaker_map = {}  # Map speaker_id to role for display
+            
+            # Build speaker map
+            for speaker in data.get("speakers", []):
+                speaker_id = speaker.get("speaker_id", "unknown")
+                role = speaker.get("role", "unknown").title()
+                display_name = speaker.get("display_name")
+                
+                # Use display name if available, otherwise use role
+                if display_name:
+                    speaker_map[speaker_id] = f"{role} ({display_name})"
+                else:
+                    speaker_map[speaker_id] = role
+            
+            # Format utterances
+            for utterance in data.get("utterances", []):
+                speaker_id = utterance.get("speaker_id", "unknown")
+                text = utterance.get("text", "")
+                speaker_label = speaker_map.get(speaker_id, speaker_id)
+                
+                formatted_lines.append(f"{speaker_label}: {text}")
+            
+            diarized_transcript = "\n".join(formatted_lines)
+            
+            print(f"✅ Enhanced AI diarization complete: {len(diarized_transcript)} characters, {len(data.get('speakers', []))} speakers identified")
+            return diarized_transcript
+            
+        except json.JSONDecodeError as e:
+            print(f"⚠️ Failed to parse diarization JSON, using raw response: {e}")
+            return diarized_json
         
     except Exception as e:
         print(f"⚠️ Diarization failed, returning raw transcript: {e}")
+        import traceback
+        traceback.print_exc()
         return f"[Diarization unavailable - raw transcript]\n\n{raw_transcript}"
 
 
