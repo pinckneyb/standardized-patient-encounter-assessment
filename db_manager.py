@@ -151,6 +151,14 @@ class AnalysisJobManager:
         self.update_stage(job_id, 'assessment_complete', 
                          assessment_report=assessment, status='completed')
     
+    def save_pdf_path(self, job_id: str, pdf_path: str):
+        """Save PDF file path."""
+        with self.get_connection() as conn:
+            conn.execute(
+                "UPDATE analysis_jobs SET pdf_path = %s WHERE job_id = %s",
+                (pdf_path, job_id)
+            )
+    
     def mark_error(self, job_id: str, error_message: str):
         """Mark job as failed with error message."""
         try:

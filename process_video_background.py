@@ -443,6 +443,25 @@ def process_video_job(job_id: str):
             )
             print(f"📄 Assessment saved: {assessment_file}")
             error_logger.log_stage_exit("assessment_generation", job_id, video_filename, success=True)
+            
+            # Generate PDF report
+            print("📋 Generating PDF report...")
+            from pdf_generator import create_assessment_pdf
+            import os
+            
+            pdf_filename = f"{Path(video_filename).stem}_{job_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            pdf_path = os.path.join("pdfs", pdf_filename)
+            
+            try:
+                create_assessment_pdf(assessment_report, pdf_path)
+                db.save_pdf_path(job_id, pdf_path)
+                print(f"📄 PDF report saved: {pdf_path}")
+                error_logger.log_info("pdf_generation", job_id, video_filename,
+                                     f"PDF report generated successfully: {pdf_path}")
+            except Exception as pdf_error:
+                error_logger.log_error("pdf_generation", job_id, video_filename,
+                                      f"PDF generation failed: {str(pdf_error)}", pdf_error)
+                print(f"⚠️  PDF generation failed (non-critical): {str(pdf_error)}")
         else:
             db.update_stage(job_id, 'narrative_complete', status='completed',
                           progress_details="Analysis completed successfully")

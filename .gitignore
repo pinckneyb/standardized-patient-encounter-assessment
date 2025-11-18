@@ -88,3 +88,4 @@ huggingface/
 *.iso
 *.dmg
 *.exe
+pdfs/
