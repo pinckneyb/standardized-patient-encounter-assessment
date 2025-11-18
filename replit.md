@@ -89,6 +89,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (November 2025)
 
+### Latest Updates (November 18, 2025)
+- **Chunked Narrative Synthesis** (NEW!):
+  - **Problem**: Very large frame transcripts (600KB+) exceed GPT-4o-mini's context limits and cause failures
+  - **Solution**: Automatically detects transcripts >150K characters and splits into processable chunks
+  - **How It Works**: Divides transcript into chunks, processes each with GPT-4o-mini individually, then combines into cohesive narrative
+  - **Benefits**: Successfully processes massive transcripts from long videos (10-15+ minutes) without failures
+  - **Tested**: Successfully processed 603KB transcript (814 seconds @ 1 FPS) into 4,954-character narrative
+- **Enhanced Delta Encoding in Frame Analysis**:
+  - **Strengthened Prompts**: Frame analysis now explicitly instructs "only note changes from previous frame"
+  - **Result**: Reduces data redundancy in frame transcripts, keeping file sizes more manageable
+  - **Complements Chunking**: Works together with chunked synthesis to handle large videos efficiently
+
 ### Latest Updates (November 17, 2025)
 - **99% HANG BUG COMPLETELY SOLVED!** (Two critical fixes):
   - **Issue**: Jobs consistently stuck at 99% (batch 270/271) waiting forever with no timeout
