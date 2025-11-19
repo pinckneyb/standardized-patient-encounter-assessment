@@ -387,9 +387,9 @@ def process_video_job(job_id: str):
                 
                 # Skip to context update (no parallel processing needed)
             else:
-                # Parallel processing for larger chunks - Tier 4 optimized
-                max_workers = min(50, max(5, num_batches))
-                print(f"Using {max_workers} workers for {num_batches} batches in this chunk (Tier 4 optimized)")
+                # Parallel processing for larger chunks - Memory optimized for Replit
+                max_workers = min(15, max(5, num_batches))
+                print(f"Using {max_workers} workers for {num_batches} batches in this chunk (memory optimized)")
                 
                 # Timeout for each chunk (10 minutes max per chunk)
                 chunk_timeout = 600

@@ -452,7 +452,7 @@ def transcribe_audio_with_whisper(audio_path: str, api_key: str, streaming: bool
         # Create client with timeout to prevent indefinite hangs
         client = OpenAI(
             api_key=api_key,
-            timeout=httpx.Timeout(180.0, connect=10.0)  # 3 min timeout for transcription
+            timeout=httpx.Timeout(360.0, connect=10.0)  # 6 min timeout for large audio files
         )
         
         # Get clean transcript from Whisper
