@@ -332,6 +332,13 @@ def process_video_job(job_id: str):
             batch_results = []
             num_batches = len(chunk_batches)
             
+            # Memory monitoring setup
+            import psutil
+            import gc
+            process = psutil.Process()
+            mem_before = process.memory_info().rss / 1024 / 1024  # MB
+            print(f"📊 Memory before chunk {chunk_index}: {mem_before:.1f} MB RSS")
+            
             # CRITICAL: Use serial processing for last few batches to avoid deadlocks
             # When only a handful of batches remain, executor-based parallelism can hang
             if num_batches < 5:
@@ -481,8 +488,16 @@ def process_video_job(job_id: str):
             # Cleanup chunk batches and trigger garbage collection
             del chunk_batches
             del batch_results
-            import gc
             gc.collect()
+            
+            # Log memory usage after chunk and GC
+            mem_after = process.memory_info().rss / 1024 / 1024  # MB
+            mem_delta = mem_after - mem_before
+            print(f"📊 Memory after chunk {chunk_index}: {mem_after:.1f} MB RSS (Δ {mem_delta:+.1f} MB)")
+            
+            # Warn if memory is getting high (approaching 1GB)
+            if mem_after > 900:
+                print(f"⚠️  WARNING: Memory usage high ({mem_after:.1f} MB). Replit may OOM kill soon.")
         
         # If no frames were extracted, warn but don't fail
         if not frames_extracted_flag:

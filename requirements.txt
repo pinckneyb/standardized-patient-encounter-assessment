@@ -31,3 +31,6 @@ reportlab
 # MacOS: brew install ffmpeg
 # Windows: Download from https://ffmpeg.org/
 psycopg2-binary
+ffmpeg
+httpx
+psutil
