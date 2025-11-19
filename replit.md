@@ -30,11 +30,12 @@ Preferred communication style: Simple, everyday language.
 -   **Configurable Options**: Frame rate (0.5-5.0 FPS), batch sizes (3-15 frames), and video resolution (360p-1080p).
 -   **Default Settings**: 1.0 FPS, 5 frames per batch, 720p resolution.
 -   **Resolution Control**: Users can reduce video processing resolution for faster analysis and lower memory usage.
+-   **Memory Optimization**: Frame analysis uses 15 concurrent workers (reduced from 50) to prevent OOM kills on Replit's memory-limited environment. This balances performance with reliability.
 
 ### Audio Transcription System
 -   **AI-Powered Speaker Diarization**: Uses GPT-5 mini with Responses API to perform evidence-based speaker identification with stable speaker IDs, role tracking, and explicit evidence citations.
 -   **Sophisticated Role Assignment**: Supports multiple roles (patient, student, resident, attending, nurse, tech, staff, family, unknown) based on explicit textual evidence only.
--   **Clean Transcript Generation**: OpenAI Whisper-1 provides accurate transcription, then GPT-5 mini adds sophisticated speaker labels with confidence tracking.
+-   **Clean Transcript Generation**: OpenAI Whisper-1 provides accurate transcription (6-minute timeout for large files), then GPT-5 mini adds sophisticated speaker labels with confidence tracking (5-minute timeout).
 -   **FFmpeg Audio Extraction**: Extracts audio as 16kHz mono WAV for narrative synthesis.
 
 ### API Architecture
