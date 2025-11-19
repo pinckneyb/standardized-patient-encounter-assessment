@@ -35,11 +35,7 @@ waitForPort = 5000
 localPort = 5000
 externalPort = 80
 
-[[ports]]
-localPort = 41083
-externalPort = 3000
-
 [deployment]
-deploymentTarget = "vm"
+deploymentTarget = "autoscale"
 run = ["streamlit", "run", "app.py", "--server.port=5000", "--server.address=0.0.0.0", "--server.headless=true"]
 build = ["pip", "install", "-r", "requirements.txt"]
