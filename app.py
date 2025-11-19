@@ -6,7 +6,6 @@ A video analysis application with scrollable output container.
 import streamlit as st
 import os
 import sys
-import subprocess
 from pathlib import Path
 from datetime import datetime
 from utils.error_logger import get_error_logger
@@ -517,38 +516,57 @@ def main():
                     error_logger.log_info("job_creation", job_id, video_filename, 
                                          f"Job created: profile={profile}, fps={fps}, batch_size={batch_size}, size={video_size:.1f}MB")
                     
-                    # Launch background processing subprocess with proper logging
+                    # Launch background processing thread (not subprocess - avoids Replit OOM killer)
                     try:
+                        import threading
+                        from process_video_background import process_video_job
+                        
                         # Create process log file for debugging
                         log_dir = Path("process_logs")
                         log_dir.mkdir(exist_ok=True)
                         log_file = log_dir / f"process_{job_id}.log"
                         
-                        # Open log file without 'with' so it stays open for the subprocess
-                        log_f = open(log_file, 'w', buffering=1)  # Line buffering
-                        process = subprocess.Popen(
-                            [sys.executable, 'process_video_background.py', job_id],
-                            start_new_session=True,
-                            stdout=log_f,
-                            stderr=subprocess.STDOUT,
-                            cwd=os.getcwd(),  # Ensure correct working directory
-                            env=os.environ.copy()  # Ensure environment variables are passed
+                        def run_job_with_logging(job_id, log_file):
+                            """Run job in thread with output redirected to log file."""
+                            import sys
+                            # Redirect stdout and stderr to log file
+                            with open(log_file, 'w', buffering=1) as log_f:
+                                old_stdout = sys.stdout
+                                old_stderr = sys.stderr
+                                sys.stdout = log_f
+                                sys.stderr = log_f
+                                try:
+                                    print(f"🚀 Starting job {job_id} in background thread")
+                                    print(f"⏰ Start time: {datetime.now()}")
+                                    print(f"{'='*60}\n")
+                                    process_video_job(job_id)
+                                finally:
+                                    # Restore original stdout/stderr
+                                    sys.stdout = old_stdout
+                                    sys.stderr = old_stderr
+                        
+                        # Start processing in background thread
+                        thread = threading.Thread(
+                            target=run_job_with_logging,
+                            args=(job_id, log_file),
+                            daemon=False,  # Don't make daemon - we want it to complete even if main thread exits
+                            name=f"VideoAnalysis-{job_id}"
                         )
-                        # Don't close log_f - let subprocess inherit it
+                        thread.start()
                         
                         st.success(f"✅ Processing started in background (Job ID: {job_id})")
                         st.info("🔄 **You can safely close your browser.** Processing will continue independently.")
                         st.info("💡 Refresh this page later to check the status of your analysis.")
                         
-                        error_logger.log_info("subprocess_launch", job_id, video_filename,
-                                             f"Background subprocess launched with PID: {process.pid}, log: {log_file}")
+                        error_logger.log_info("thread_launch", job_id, video_filename,
+                                             f"Background thread launched: {thread.name}, log: {log_file}")
                     except Exception as e:
-                        error_msg = f"Failed to launch background process: {str(e)}"
+                        error_msg = f"Failed to launch background thread: {str(e)}"
                         st.error(f"❌ {error_msg}")
-                        error_logger.log_error("subprocess_launch", job_id, video_filename, error_msg, e)
+                        error_logger.log_error("thread_launch", job_id, video_filename, error_msg, e)
                         db.mark_error(job_id, error_msg)
                         
-                        # Clean up video file if subprocess launch failed
+                        # Clean up video file if thread launch failed
                         if persistent_video_path.exists():
                             persistent_video_path.unlink()
                     
