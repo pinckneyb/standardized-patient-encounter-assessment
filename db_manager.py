@@ -243,20 +243,21 @@ class AnalysisJobManager:
     def get_active_jobs(self) -> List[Dict[str, Any]]:
         """
         Get all active jobs (queued or in_progress).
-        Automatically detects and marks stale jobs (heartbeat >5 min old) as failed.
+        Automatically detects and marks stale jobs (heartbeat >20 min old) as failed.
         """
         with self._get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # First, mark stale jobs as failed
-                # A job is stale if last_heartbeat is more than 5 minutes old
+                # A job is stale if last_heartbeat is more than 20 minutes old
+                # (Increased from 5min to support long-running video analysis jobs)
                 cur.execute("""
                     UPDATE analysis_jobs
                     SET status = 'failed',
-                        error_message = 'Process died - no heartbeat for >5 minutes',
+                        error_message = 'Process died - no heartbeat for >20 minutes',
                         current_stage = 'error'
                     WHERE status = 'in_progress'
                       AND last_heartbeat IS NOT NULL
-                      AND last_heartbeat < (CURRENT_TIMESTAMP - INTERVAL '300 seconds')
+                      AND last_heartbeat < (CURRENT_TIMESTAMP - INTERVAL '1200 seconds')
                       AND error_message IS NULL
                     RETURNING job_id
                 """)

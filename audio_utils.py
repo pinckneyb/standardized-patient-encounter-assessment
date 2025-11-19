@@ -291,7 +291,7 @@ def diarize_transcript_with_gpt4o(raw_transcript: str, api_key: str) -> str:
         
         client = OpenAI(
             api_key=api_key,
-            timeout=httpx.Timeout(180.0, connect=10.0)
+            timeout=httpx.Timeout(300.0, connect=10.0)  # 5 min timeout for diarization
         )
         
         diarization_prompt = f"""You are a meticulous medical-encounter diarizer. Your job is to convert a raw, unstructured transcript of a clinical encounter into a clean, role-aware conversation log with durable speaker IDs and evidence-backed roles. Encounters often include multiple clinicians, repeated handoffs, sarcasm, interruptions, and patients who challenge staff. Never assume roles from question/answer patterns or clinical stereotypes. Only commit to a role when there is explicit textual evidence.
