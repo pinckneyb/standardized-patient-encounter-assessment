@@ -5,7 +5,7 @@ integrations = ["python_openai:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["cairo", "ffmpeg", "ffmpeg-full", "freetype", "ghostscript", "glibcLocales", "gobject-introspection", "gtk3", "lcms2", "libGL", "libGLU", "libimagequant", "libjpeg", "libsndfile", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pkg-config", "qhull", "tcl", "tk", "zlib"]
+packages = ["cairo", "ffmpeg-full", "freetype", "ghostscript", "libjpeg", "libtiff", "libwebp", "openjpeg", "pkg-config", "zlib", "libGL", "libGLU"]
 
 [workflows]
 runButton = "Project"
@@ -36,28 +36,8 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 37021
-externalPort = 3003
-
-[[ports]]
-localPort = 40535
+localPort = 41177
 externalPort = 3000
-
-[[ports]]
-localPort = 42271
-externalPort = 3001
-
-[[ports]]
-localPort = 43453
-externalPort = 3002
-
-[[ports]]
-localPort = 44251
-externalPort = 4200
-
-[[ports]]
-localPort = 46609
-externalPort = 5000
 
 [deployment]
 deploymentTarget = "vm"
