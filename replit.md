@@ -8,6 +8,33 @@ This AI Video Analysis application analyzes standardized patient encounters and 
 
 Preferred communication style: Simple, everyday language.
 
+## Deployment Requirements
+
+**CRITICAL: This application MUST be deployed as a Reserved VM, NOT run in development workspace.**
+
+### Why Reserved VM is Required
+- **Development workspaces** are designed for interactive coding and testing, NOT long-running compute tasks
+- Video processing jobs (10-15 minutes for a 13-minute video) get killed by workspace resource limits
+- Jobs will fail silently after ~3 minutes of processing in development mode
+
+### Reserved VM Benefits
+- ✅ **Dedicated computing resources** - No resource contention or kills
+- ✅ **99.9% uptime guarantee** - Jobs complete reliably
+- ✅ **No timeout limits** - Can process videos of any length
+- ✅ **Designed for compute-intensive tasks** - Exactly what this app does
+
+### Storage Considerations
+- Reserved VMs have **no persistent file storage** - files are lost on republish
+- ✅ **Already handled**: Application uses PostgreSQL database for all persistent data
+- Output files (transcripts, narratives, PDFs) are stored in per-job directories (`outputs/`)
+- Users should download results after processing completes
+
+### Current Configuration
+- **Deployment Type**: Reserved VM (configured in .replit)
+- **Run Command**: Streamlit on port 5000 with headless mode
+- **Database**: PostgreSQL (persistent across deployments)
+- **Storage**: Temporary files cleaned up after job completion
+
 ## System Architecture
 
 ### Core Application Structure

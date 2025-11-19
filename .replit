@@ -60,5 +60,5 @@ localPort = 46609
 externalPort = 5000
 
 [deployment]
-deploymentTarget = "autoscale"
-run = ["streamlit", "run", "app.py", "--server.port=5000", "--server.address=0.0.0.0"]
+deploymentTarget = "vm"
+run = ["streamlit", "run", "app.py", "--server.port=5000", "--server.address=0.0.0.0", "--server.headless=true"]
