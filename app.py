@@ -302,6 +302,93 @@ def main():
                         assessment_report = job.get('assessment_report', '')
                         video_filename = job.get('video_filename', 'result')
                         
+                        # Download Section - Prominent at the top
+                        st.markdown("### 💾 Download Results")
+                        
+                        # Get PDF from storage or local file
+                        storage_key = job.get('storage_key', '')
+                        pdf_path = job.get('pdf_path', '')
+                        pdf_bytes = None
+                        pdf_source = None
+                        
+                        # Try to get PDF from object storage first (persistent)
+                        if storage_key:
+                            try:
+                                from storage_manager import StorageManager
+                                storage = StorageManager()
+                                pdf_bytes = storage.get_pdf_bytes(storage_key)
+                                if pdf_bytes:
+                                    pdf_source = "cloud"
+                            except Exception as e:
+                                print(f"Failed to get PDF from storage: {e}")
+                        
+                        # Fallback to local file if storage failed
+                        if not pdf_bytes and pdf_path and Path(pdf_path).exists():
+                            with open(pdf_path, 'rb') as pdf_file:
+                                pdf_bytes = pdf_file.read()
+                            pdf_source = "local"
+                        
+                        # Fallback: Generate PDF on-demand if needed
+                        if not pdf_bytes and assessment_report:
+                            try:
+                                from pdf_generator import create_assessment_pdf
+                                import tempfile
+                                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_pdf:
+                                    pdf_path_temp = create_assessment_pdf(assessment_report, tmp_pdf.name)
+                                    with open(pdf_path_temp, 'rb') as pdf_file:
+                                        pdf_bytes = pdf_file.read()
+                                    os.unlink(pdf_path_temp)
+                                pdf_source = "generated"
+                            except Exception as e:
+                                print(f"Failed to generate PDF: {e}")
+                        
+                        # Create download buttons in a nice grid
+                        col1, col2, col3 = st.columns(3)
+                        
+                        with col1:
+                            if pdf_bytes:
+                                st.download_button(
+                                    label="📄 PDF Report" + (" ☁️" if pdf_source == "cloud" else ""),
+                                    data=pdf_bytes,
+                                    file_name=f"assessment_{video_filename}.pdf",
+                                    mime="application/pdf",
+                                    key="pdf_download_auto",
+                                    use_container_width=True
+                                )
+                            else:
+                                st.button("📄 PDF Report", disabled=True, use_container_width=True)
+                        
+                        with col2:
+                            if audio_transcript:
+                                st.download_button(
+                                    label="🎤 Transcript",
+                                    data=audio_transcript,
+                                    file_name=f"transcript_{video_filename}.txt",
+                                    mime="text/plain",
+                                    key="transcript_download",
+                                    use_container_width=True
+                                )
+                            else:
+                                st.button("🎤 Transcript", disabled=True, use_container_width=True)
+                        
+                        with col3:
+                            if enhanced_narrative:
+                                st.download_button(
+                                    label="✨ Full Narrative",
+                                    data=enhanced_narrative,
+                                    file_name=f"narrative_{video_filename}.txt",
+                                    mime="text/plain",
+                                    key="narrative_download",
+                                    use_container_width=True
+                                )
+                            else:
+                                st.button("✨ Full Narrative", disabled=True, use_container_width=True)
+                        
+                        st.markdown("---")
+                        
+                        # Results display section (expandable)
+                        st.markdown("### 📊 View Results")
+                        
                         if audio_transcript:
                             with st.expander("🎤 Audio Transcript", expanded=False):
                                 st.text_area("Audio Transcript", audio_transcript, height=150, key="audio_result")
@@ -317,65 +404,6 @@ def main():
                         if assessment_report:
                             with st.expander("📊 Assessment Report", expanded=True):
                                 display_assessment_report(assessment_report)
-                        
-                        # Auto-generated PDF download (from object storage or local file)
-                        storage_key = job.get('storage_key', '')
-                        pdf_path = job.get('pdf_path', '')
-                        pdf_bytes = None
-                        
-                        # Try to get PDF from object storage first (persistent)
-                        if storage_key:
-                            try:
-                                from storage_manager import StorageManager
-                                storage = StorageManager()
-                                pdf_bytes = storage.get_pdf_bytes(storage_key)
-                                if pdf_bytes:
-                                    st.success("📄 **Professional PDF Report Available** (☁️ from cloud storage)")
-                            except Exception as e:
-                                print(f"Failed to get PDF from storage: {e}")
-                        
-                        # Fallback to local file if storage failed
-                        if not pdf_bytes and pdf_path and Path(pdf_path).exists():
-                            st.success("📄 **Professional PDF Report Available**")
-                            with open(pdf_path, 'rb') as pdf_file:
-                                pdf_bytes = pdf_file.read()
-                        
-                        # Show download button if PDF is available
-                        if pdf_bytes:
-                            st.download_button(
-                                label="📥 Download Assessment PDF Report",
-                                data=pdf_bytes,
-                                file_name=f"assessment_{video_filename}.pdf",
-                                mime="application/pdf",
-                                key="pdf_download_auto"
-                            )
-                        elif assessment_report:
-                            # Fallback: Generate PDF on-demand
-                            from pdf_generator import create_assessment_pdf
-                            import tempfile
-                            
-                            try:
-                                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp_pdf:
-                                    pdf_path_temp = create_assessment_pdf(
-                                        assessment_report,
-                                        tmp_pdf.name
-                                    )
-                                    
-                                    with open(pdf_path_temp, 'rb') as pdf_file:
-                                        pdf_bytes = pdf_file.read()
-                                    
-                                    st.download_button(
-                                        label="📥 Generate & Download PDF",
-                                        data=pdf_bytes,
-                                        file_name=f"assessment_report_{video_filename}.pdf",
-                                        mime="application/pdf",
-                                        key="pdf_download_result"
-                                    )
-                                    
-                                    os.unlink(pdf_path_temp)
-                                    
-                            except Exception as e:
-                                st.error(f"Error generating PDF: {str(e)}")
                         
                         if st.button("🗑️ Clear Results"):
                             st.session_state.current_job_id = None

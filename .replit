@@ -39,3 +39,6 @@ externalPort = 80
 deploymentTarget = "vm"
 run = ["streamlit", "run", "app.py", "--server.port=5000", "--server.address=0.0.0.0", "--server.headless=true"]
 build = ["pip", "install", "-r", "requirements.txt"]
+
+[objectStorage]
+defaultBucketID = "replit-objstore-57b966fd-6d1e-49bd-a0a2-b92e685fe888"
