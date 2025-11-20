@@ -581,19 +581,33 @@ def process_video_job(job_id: str):
             print(f"📄 Assessment saved: {assessment_file}")
             
             # Phase 7: Generate PDF report WITH TIMEOUT PROTECTION
-            print("📋 Phase 7: PDF Generation")
+            print("📋 Phase 7: PDF Generation & Upload to Object Storage")
             from pdf_generator import create_assessment_pdf
+            from storage_manager import StorageManager
             
             output_dir = get_output_dir(video_filename, job_id)
             pdf_path = output_dir / "report.pdf"
             
             def create_pdf():
-                """Wrapper for PDF generation with proper error checking."""
+                """Wrapper for PDF generation and upload to object storage."""
                 db.update_stage(job_id, 'generating_pdf', 
                               progress_details="Generating PDF report")
                 create_assessment_pdf(assessment_report, str(pdf_path))
                 db.save_pdf_path(job_id, str(pdf_path))
                 db.save_output_dir(job_id, str(output_dir))
+                
+                # Upload PDF to object storage for persistence
+                db.update_stage(job_id, 'uploading_pdf',
+                              progress_details="Uploading PDF to cloud storage")
+                storage = StorageManager()
+                storage_key = storage.upload_pdf(str(pdf_path), job_id, video_filename)
+                
+                if storage_key:
+                    db.save_storage_key(job_id, storage_key)
+                    print(f"☁️  PDF uploaded to object storage: {storage_key}")
+                else:
+                    print(f"⚠️  PDF upload failed, local copy saved: {pdf_path}")
+                
                 return str(pdf_path)
             
             try:

@@ -60,6 +60,13 @@ class AnalysisJobManager:
                             ) THEN
                                 ALTER TABLE analysis_jobs ADD COLUMN last_heartbeat TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
                             END IF;
+                            
+                            IF NOT EXISTS (
+                                SELECT 1 FROM information_schema.columns 
+                                WHERE table_name='analysis_jobs' AND column_name='storage_key'
+                            ) THEN
+                                ALTER TABLE analysis_jobs ADD COLUMN storage_key TEXT;
+                            END IF;
                         END $$;
                     """)
                     conn.commit()
@@ -189,6 +196,16 @@ class AnalysisJobManager:
                 cur.execute(
                     "UPDATE analysis_jobs SET output_dir = %s WHERE job_id = %s",
                     (output_dir, job_id)
+                )
+                conn.commit()
+    
+    def save_storage_key(self, job_id: str, storage_key: str):
+        """Save object storage key for PDF to database."""
+        with self._get_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE analysis_jobs SET storage_key = %s WHERE job_id = %s",
+                    (storage_key, job_id)
                 )
                 conn.commit()
     

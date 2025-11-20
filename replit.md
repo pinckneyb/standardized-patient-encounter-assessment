@@ -24,10 +24,14 @@ Preferred communication style: Simple, everyday language.
 - ✅ **Designed for compute-intensive tasks** - Exactly what this app does
 
 ### Storage Considerations
-- Reserved VMs have **no persistent file storage** - files are lost on republish
-- ✅ **Already handled**: Application uses PostgreSQL database for all persistent data
-- Output files (transcripts, narratives, PDFs) are stored in per-job directories (`outputs/`)
-- Users should download results after processing completes
+- Reserved VMs have **ephemeral file storage** - files are lost on republish
+- ✅ **Persistent Storage Solution Implemented**:
+  - **PostgreSQL Database**: Stores all text data (transcripts, narratives, assessments)
+  - **Replit Object Storage**: Stores PDF reports persistently in cloud storage
+  - **Automatic Upload**: PDFs are uploaded to object storage after generation
+  - **Automatic Fallback**: App retrieves PDFs from cloud storage, falls back to local files
+- Temporary files (uploaded videos, audio files) are cleaned up after processing
+- Users can download PDF reports anytime - they persist across deployments
 
 ### Current Configuration
 - **Deployment Type**: Reserved VM (configured in .replit)
@@ -96,6 +100,10 @@ Preferred communication style: Simple, everyday language.
 ### Web Framework and UI
 -   **Streamlit**: Provides the web application framework.
 -   **ReportLab**: Utilized for generating professional PDF assessment reports.
+
+### Storage and Persistence
+-   **PostgreSQL**: Persistent storage for all job data, transcripts, narratives, and assessments.
+-   **Replit Object Storage**: Cloud storage for PDF reports (persists across deployments).
 
 ### Data Processing
 -   **NumPy**: For numerical computations.

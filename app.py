@@ -318,13 +318,30 @@ def main():
                             with st.expander("📊 Assessment Report", expanded=True):
                                 display_assessment_report(assessment_report)
                         
-                        # Auto-generated PDF download
+                        # Auto-generated PDF download (from object storage or local file)
+                        storage_key = job.get('storage_key', '')
                         pdf_path = job.get('pdf_path', '')
-                        if pdf_path and Path(pdf_path).exists():
+                        pdf_bytes = None
+                        
+                        # Try to get PDF from object storage first (persistent)
+                        if storage_key:
+                            try:
+                                from storage_manager import StorageManager
+                                storage = StorageManager()
+                                pdf_bytes = storage.get_pdf_bytes(storage_key)
+                                if pdf_bytes:
+                                    st.success("📄 **Professional PDF Report Available** (☁️ from cloud storage)")
+                            except Exception as e:
+                                print(f"Failed to get PDF from storage: {e}")
+                        
+                        # Fallback to local file if storage failed
+                        if not pdf_bytes and pdf_path and Path(pdf_path).exists():
                             st.success("📄 **Professional PDF Report Available**")
                             with open(pdf_path, 'rb') as pdf_file:
                                 pdf_bytes = pdf_file.read()
-                            
+                        
+                        # Show download button if PDF is available
+                        if pdf_bytes:
                             st.download_button(
                                 label="📥 Download Assessment PDF Report",
                                 data=pdf_bytes,
