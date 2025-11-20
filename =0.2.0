@@ -1,0 +1,2 @@
+Requirement already satisfied: ffmpeg-python in ./.pythonlibs/lib/python3.11/site-packages (0.2.0)
+Requirement already satisfied: future in ./.pythonlibs/lib/python3.11/site-packages (from ffmpeg-python) (1.0.0)
