@@ -43,7 +43,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Core Application Structure
 - **Web Interface**: Streamlit-based application (`app.py`) for video upload, processing controls, and results display.
-- **Video Processing**: Utilizes FFmpeg for frame extraction, with OpenCV as a fallback (`video_processor.py`).
+- **Video Processing**: Utilizes FFmpeg as primary method for frame extraction, with OpenCV as optional fallback (`video_processor.py`). OpenCV uses lazy loading with retry logic for Reserved VM compatibility.
 - **AI Analysis Engine**: Employs a three-stage pipeline leveraging OpenAI's Responses API (`gpt5_client.py`).
 - **Profiles**: Supports "Medical Assessment" (default) and "Generic Video Narration" (`profiles.py`).
 - **Audio Processing**: Implements streaming transcription using OpenAI models (`utils.py`).
@@ -89,8 +89,8 @@ Preferred communication style: Simple, everyday language.
 -   **GPT-4o-mini**: Used for frame analysis, narrative synthesis, and medical assessment generation.
 
 ### Video Processing
--   **FFmpeg**: Primary library for video frame and audio extraction.
--   **OpenCV (Headless)**: Fallback for video processing (uses `opencv-python-headless` for deployment compatibility).
+-   **FFmpeg**: Primary library for video frame and audio extraction (always used first).
+-   **OpenCV (Headless)**: Optional fallback for video processing (uses `opencv-python-headless` with lazy loading and retry logic for Reserved VM compatibility).
 -   **PIL/Pillow**: Used for image manipulation.
 
 ### Audio Processing

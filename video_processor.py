@@ -2,7 +2,6 @@
 Video processing module for frame extraction and video handling.
 """
 
-import cv2
 import ffmpeg
 import numpy as np
 from typing import List, Tuple, Optional, Union, Iterator
@@ -14,6 +13,35 @@ import io
 import subprocess
 import json
 from utils.error_logger import get_error_logger
+
+# Lazy import cv2 to avoid startup failures on Reserved VM
+# OpenCV is only used as fallback when FFmpeg fails
+_cv2 = None
+
+def _get_cv2():
+    """Lazy load cv2 with retry logic for Reserved VM compatibility."""
+    global _cv2
+    if _cv2 is None:
+        import time
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                import cv2 as opencv
+                _cv2 = opencv
+                print(f"✅ OpenCV {_cv2.__version__} loaded successfully")
+                break
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    wait_time = (attempt + 1) * 2  # 2, 4, 6 seconds
+                    print(f"⚠️  OpenCV import attempt {attempt + 1} failed: {e}")
+                    print(f"   Retrying in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                else:
+                    print(f"❌ OpenCV import failed after {max_retries} attempts: {e}")
+                    print(f"   Continuing with FFmpeg-only mode (OpenCV fallback disabled)")
+                    _cv2 = False  # Mark as failed, don't retry
+                    break
+    return _cv2 if _cv2 is not False else None
 
 class VideoProcessor:
     """Handles video processing, frame extraction, and metadata management."""
@@ -108,7 +136,16 @@ class VideoProcessor:
             
         except Exception as e:
             self.error_logger.log_warning("video_properties", self.job_id, self.video_filename,
-                                         f"FFmpeg failed: {str(e)}, falling back to OpenCV")
+                                         f"FFmpeg failed: {str(e)}, trying OpenCV fallback")
+            cv2 = _get_cv2()
+            if cv2 is None:
+                self.error_logger.log_error("video_properties", self.job_id, self.video_filename,
+                                           "Failed to load OpenCV, cannot fallback from FFmpeg", None)
+                self.duration = 0
+                self.total_frames = 0
+                self.video_width = 0
+                return False
+            
             cap = cv2.VideoCapture(self.video_path)
             if cap.isOpened():
                 self.total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -289,6 +326,13 @@ class VideoProcessor:
         Yields:
             Frame metadata dictionaries one at a time
         """
+        # Lazy load OpenCV
+        cv2 = _get_cv2()
+        if cv2 is None:
+            error_msg = "OpenCV not available for fallback frame extraction"
+            self.error_logger.log_error("opencv_fallback", self.job_id, self.video_filename, error_msg, None)
+            raise RuntimeError(error_msg)
+        
         cap = cv2.VideoCapture(self.video_path)
         
         if not cap.isOpened():
