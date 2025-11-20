@@ -86,7 +86,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Video Processing
 -   **FFmpeg**: Primary library for video frame and audio extraction.
--   **OpenCV**: Fallback for video processing and computer vision tasks.
+-   **OpenCV (Headless)**: Fallback for video processing (uses `opencv-python-headless` for deployment compatibility).
 -   **PIL/Pillow**: Used for image manipulation.
 
 ### Audio Processing

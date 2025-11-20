@@ -1,0 +1,148 @@
+2025-11-19 17:37:51.86
+30685acd
+User
+Traceback (most recent call last):
+2025-11-19 17:37:51.86
+30685acd
+User
+File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/threading.py", line 1045, in _bootstrap_inner
+2025-11-19 17:37:51.86
+30685acd
+User
+self.run()
+2025-11-19 17:37:51.86
+30685acd
+User
+File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/threading.py", line 982, in run
+2025-11-19 17:37:51.86
+30685acd
+User
+self._target(*self._args, **self._kwargs)
+2025-11-19 17:37:51.87
+30685acd
+User
+process_video_job(job_id)
+2025-11-19 17:37:51.87
+30685acd
+User
+File "/home/runner/workspace/process_video_background.py", line 167, in process_video_job
+2025-11-19 17:37:51.87
+30685acd
+User
+File "/home/runner/workspace/app.py", line 542, in run_job_with_logging
+2025-11-19 17:37:51.87
+30685acd
+User
+from video_processor import VideoProcessor, FrameBatchProcessor
+2025-11-19 17:37:51.87
+30685acd
+User
+File "/home/runner/workspace/video_processor.py", line 5, in
+2025-11-19 17:37:51.87
+30685acd
+User
+import cv2
+2025-11-19 17:37:51.87
+30685acd
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/cv2/__init__.py", line 181, in
+2025-11-19 17:37:51.90
+30685acd
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/cv2/__init__.py", line 153, in bootstrap
+2025-11-19 17:37:51.90
+30685acd
+User
+bootstrap()
+2025-11-19 17:37:51.90
+30685acd
+User
+native_module = importlib.import_module("cv2")
+2025-11-19 17:37:51.90
+30685acd
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-19 17:37:51.90
+30685acd
+User
+File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2025-11-19 17:37:51.90
+30685acd
+User
+ImportError: /nix/store/syzi2bpl8j599spgvs20xjkjzcw758as-glib-2.84.3/lib/libgthread-2.0.so.0: cannot read file data: Input/output error
+2025-11-19 17:37:51.90
+30685acd
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-19 17:37:51.90
+30685acd
+User
+return _bootstrap._gcd_import(name[level:], package, level)
+2025-11-19 21:08:04.65
+30685acd
+User
+Exception in thread VideoAnalysis-c8217a66:
+2025-11-19 21:08:04.65
+30685acd
+User
+File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/threading.py", line 1045, in _bootstrap_inner
+2025-11-19 21:08:04.65
+30685acd
+User
+Traceback (most recent call last):
+2025-11-19 21:08:04.66
+30685acd
+User
+self.run()
+2025-11-19 21:08:04.66
+30685acd
+User
+File "/nix/store/7d088dip86hlzri9sk0h78b63yfmx0a0-python3-3.11.13/lib/python3.11/threading.py", line 982, in run
+2025-11-19 21:08:04.66
+30685acd
+User
+self._target(*self._args, **self._kwargs)
+2025-11-19 21:08:04.66
+30685acd
+User
+File "/home/runner/workspace/app.py", line 542, in run_job_with_logging
+2025-11-19 21:08:04.66
+30685acd
+User
+process_video_job(job_id)
+2025-11-19 21:08:04.66
+30685acd
+User
+from video_processor import VideoProcessor, FrameBatchProcessor
+2025-11-19 21:08:04.66
+30685acd
+User
+File "/home/runner/workspace/process_video_background.py", line 167, in process_video_job
+2025-11-19 21:08:04.66
+30685acd
+User
+File "/home/runner/workspace/video_processor.py", line 5, in
+2025-11-19 21:08:04.66
+30685acd
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/cv2/__init__.py", line 181, in
+2025-11-19 21:08:04.66
+30685acd
+User
+import cv2
+2025-11-19 21:08:04.67
+30685acd
+User
+bootstrap()
+2025-11-19 21:08:04.67
+30685acd
+User
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/cv2/__init__.py", line 76, in bootstrap
+2025-11-19 21:08:04.67
+30685acd
+User
+ImportError: ERROR: recursion is detected during loading of "cv2" binary extensions. Check OpenCV installation.
+2025-11-19 21:08:04.67
+30685acd
+User
+raise ImportError('ERROR: recursion is detected during loading of "cv2" binary extensions. Check OpenCV installation.')
