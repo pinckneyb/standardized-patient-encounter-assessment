@@ -137,10 +137,11 @@ class AnalysisJobManager:
             with self._get_connection() as conn:
                 with conn.cursor() as cur:
                     if total_batches is not None:
+                        # Cap progress at 100% (handle cases where actual batches exceed estimate)
                         cur.execute("""
                             UPDATE analysis_jobs 
                             SET completed_batches = %s, total_batches = %s, 
-                                progress = ROUND((%s::float / %s) * 100), 
+                                progress = LEAST(100, ROUND((%s::float / %s) * 100)), 
                                 updated_at = CURRENT_TIMESTAMP
                             WHERE job_id = %s
                         """, (completed_batches, total_batches, completed_batches, total_batches, job_id))

@@ -247,8 +247,10 @@ def main():
                         st.markdown(f"**Progress:** {progress_details}")
                     
                     if progress and progress > 0:
-                        st.progress(progress / 100.0)
-                        st.markdown(f"**{progress:.1f}% Complete**")
+                        # Cap progress at 100% for display (Streamlit requires [0, 1] range)
+                        display_progress = min(1.0, progress / 100.0)
+                        st.progress(display_progress)
+                        st.markdown(f"**{min(100.0, progress):.1f}% Complete**")
                     
                     if created_at:
                         elapsed_time = datetime.now() - created_at
