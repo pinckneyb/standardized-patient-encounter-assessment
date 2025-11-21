@@ -261,21 +261,21 @@ class AnalysisJobManager:
     def get_active_jobs(self) -> List[Dict[str, Any]]:
         """
         Get all active jobs (queued or in_progress).
-        Automatically detects and marks stale jobs (heartbeat >20 min old) as failed.
+        Automatically detects and marks stale jobs (heartbeat >120 min old) as failed.
         """
         with self._get_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # First, mark stale jobs as failed
-                # A job is stale if last_heartbeat is more than 20 minutes old
-                # (Increased from 5min to support long-running video analysis jobs)
+                # A job is stale if last_heartbeat is more than 120 minutes old
+                # (Increased from 20min to 120min to support long video processing - 13-min videos take 10-15+ mins)
                 cur.execute("""
                     UPDATE analysis_jobs
                     SET status = 'failed',
-                        error_message = 'Process died - no heartbeat for >20 minutes',
+                        error_message = 'Process died - no heartbeat for >120 minutes',
                         current_stage = 'error'
                     WHERE status = 'in_progress'
                       AND last_heartbeat IS NOT NULL
-                      AND last_heartbeat < (CURRENT_TIMESTAMP - INTERVAL '1200 seconds')
+                      AND last_heartbeat < (CURRENT_TIMESTAMP - INTERVAL '7200 seconds')
                       AND error_message IS NULL
                     RETURNING job_id
                 """)
@@ -335,16 +335,16 @@ class AnalysisJobManager:
     def cleanup_old_incomplete_jobs(self):
         """Mark old incomplete jobs as failed and clean up their temp files.
         This runs on app startup to handle any jobs left in-progress from crashes/interruptions.
-        Only marks jobs as stale if they haven't been updated in 30+ minutes.
+        Only marks jobs as stale if they haven't been updated in 120+ minutes.
         """
         try:
             with self._get_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                    # Only mark jobs as stale if they haven't updated in 30+ minutes
+                    # Only mark jobs as stale if they haven't updated in 120+ minutes (support long video processing)
                     cur.execute("""
                         SELECT job_id, video_path, video_filename FROM analysis_jobs 
                         WHERE status IN ('pending', 'in_progress')
-                        AND updated_at < NOW() - INTERVAL '30 minutes'
+                        AND updated_at < NOW() - INTERVAL '120 minutes'
                     """)
                     stale_jobs = cur.fetchall()
                     
