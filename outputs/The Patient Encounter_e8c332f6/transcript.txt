@@ -1,0 +1,1298 @@
+{
+  "speakers": [
+    {
+      "speaker_id": "S1",
+      "display_name": "Katie",
+      "role": "nurse",
+      "confidence": 0.9,
+      "evidence": [
+        {
+          "quote": "My name's Katie. I'll be your nurse today.",
+          "evidence_type": "self_identification"
+        }
+      ],
+      "role_history": [
+        {
+          "role": "nurse",
+          "reason": "Self-identification: \"My name's Katie. I'll be your nurse today.\""
+        }
+      ],
+      "notes": null
+    },
+    {
+      "speaker_id": "S2",
+      "display_name": null,
+      "role": "patient",
+      "confidence": 0.7,
+      "evidence": [
+        {
+          "quote": "Hi, Mr. Smith.",
+          "evidence_type": "third_party_attribution"
+        },
+        {
+          "quote": "My chest hurts.",
+          "evidence_type": "content_hint"
+        },
+        {
+          "quote": "I'm Katie.",
+          "evidence_type": "content_hint"
+        }
+      ],
+      "role_history": [
+        {
+          "role": "patient",
+          "reason": "Referred to as \"Mr. Smith\" by clinician (third-party attribution) and provides presenting complaint and history consistent with patient."
+        }
+      ],
+      "notes": "possible_name_collision: Katie (patient utters \"I'm Katie\" later while other clinicians named Katie are present)"
+    },
+    {
+      "speaker_id": "S3",
+      "display_name": "Katie",
+      "role": "student",
+      "confidence": 0. nine,
+      "evidence": [
+        {
+          "quote": "Yeah. I'm Katie. I'm a medical student.",
+          "evidence_type": "self_identification"
+        },
+        {
+          "quote": "This your student?",
+          "evidence_type": "third_party_attribution"
+        }
+      ],
+      "role_history": [
+        {
+          "role": "student",
+          "reason": "Self-identification: \"I'm Katie. I'm a medical student.\""
+        }
+      ],
+      "notes": "possible_name_collision: Katie (distinct from nurse S1 Katie; multiple speakers use same name)"
+    },
+    {
+      "speaker_id": "S4",
+      "display_name": "Dr. Patel",
+      "role": "resident",
+      "confidence": 0.95,
+      "evidence": [
+        {
+          "quote": "My name is Dr. Patel.",
+          "evidence_type": "title_form_of_address"
+        },
+        {
+          "quote": "Yeah. I'm a resident doctor.",
+          "evidence_type": "self_identification"
+        }
+      ],
+      "role_history": [
+        {
+          "role": "resident",
+          "reason": "Self-identification as resident: \"I'm a resident doctor.\""
+        }
+      ],
+      "notes": null
+    },
+    {
+      "speaker_id": "S5",
+      "display_name": "Dr. Burke",
+      "role": "attending",
+      "confidence": 0.7,
+      "evidence": [
+        {
+          "quote": "Mr. Smith, I'm Dr. Burke.",
+          "evidence_type": "title_form_of_address"
+        },
+        {
+          "quote": "So I'm going to go talk to the attending doctor and we'll be back, okay?",
+          "evidence_type": "third_party_attribution"
+        }
+      ],
+      "role_history": [
+        {
+          "role": "attending",
+          "reason": "Identified by title \"Dr. Burke\" and temporally follows a statement that clinicians would 'go talk to the attending doctor', supporting attending-level role (third-party attribution)."
+        }
+      ],
+      "notes": null
+    }
+  ],
+  "utterances": [
+    {
+      "idx": 1,
+      "speaker_id": "S1",
+      "text": "Hi, Mr. Smith. How are you? What's it look like? My name's Katie. I'll be your nurse today. Can I take your blood pressure?",
+      "addressed_to": "S2",
+      "tags": [
+        "self_identification",
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 2,
+      "speaker_id": "S2",
+      "text": "You have to. Can I get a shirt?",
+      "addressed_to": "S1",
+      "tags": [
+        "request_item"
+      ],
+      "time": null
+    },
+    {
+      "idx": 3,
+      "speaker_id": "S1",
+      "text": "You doing okay?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 4,
+      "speaker_id": "S2",
+      "text": "Yeah, but I need a new shirt.",
+      "addressed_to": "S1",
+      "tags": [
+        "request_item"
+      ],
+      "time": null
+    },
+    {
+      "idx": 5,
+      "speaker_id": "S1",
+      "text": "Hold on just a minute. I got to be somewhere in an hour or so. Y'all need to hurry up. Alright. Blood pressure looks okay. So your chest started hurting this morning?",
+      "addressed_to": "S2",
+      "tags": [
+        "handoff",
+        "gives_history",
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 6,
+      "speaker_id": "S2",
+      "text": "That's what I said.",
+      "addressed_to": "S1",
+      "tags": [
+        "clarification"
+      ],
+      "time": null
+    },
+    {
+      "idx": 7,
+      "speaker_id": "S1",
+      "text": "Alright. How bad's your pain right now?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 8,
+      "speaker_id": "S2",
+      "text": "I don't know. It hurts.",
+      "addressed_to": "group",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 9,
+      "speaker_id": "S1",
+      "text": "Did you take anything?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info",
+        "medication"
+      ],
+      "time": null
+    },
+    {
+      "idx": 10,
+      "speaker_id": "S2",
+      "text": "No. The doctor gave me some pills, but it won't work.",
+      "addressed_to": "group",
+      "tags": [
+        "medication",
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 11,
+      "speaker_id": "S1",
+      "text": "Alright. Well, I will go put your information into the computer real quick.",
+      "addressed_to": "group",
+      "tags": [
+        "handoff"
+      ],
+      "time": null
+    },
+    {
+      "idx": 12,
+      "speaker_id": "S2",
+      "text": "I've been here before. It's already in there.",
+      "addressed_to": "S1",
+      "tags": [
+        "gives_history",
+        "prior_utterance_consistency"
+      ],
+      "time": null
+    },
+    {
+      "idx": 13,
+      "speaker_id": "S1",
+      "text": "Alright. We'll find your information real quick. So you've been here before? Was it for chest pain?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 14,
+      "speaker_id": "S2",
+      "text": "No. No? You should probably know because you work here. I've been here a lot of times, so you should know why I'm here.",
+      "addressed_to": "S1",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 15,
+      "speaker_id": "S1",
+      "text": "Alright. We'll take good care of you just like last time. Hope it's not like last time.",
+      "addressed_to": "S2",
+      "tags": [
+        "reassurance",
+        "prior_utterance_consistency"
+      ],
+      "time": null
+    },
+    {
+      "idx": 16,
+      "speaker_id": "S2",
+      "text": "Can I get some crackers?",
+      "addressed_to": "S1",
+      "tags": [
+        "request_item"
+      ],
+      "time": null
+    },
+    {
+      "idx": 17,
+      "speaker_id": "S1",
+      "text": "We'll get you something. Let me go talk to the doctors first and then we'll be right back, okay?",
+      "addressed_to": "S2",
+      "tags": [
+        "handoff",
+        "reassurance"
+      ],
+      "time": null
+    },
+    {
+      "idx": 18,
+      "speaker_id": "S2",
+      "text": "Alright. Tell them to hurry up. Yeah.",
+      "addressed_to": "group",
+      "tags": [
+        "request_item",
+        "urgency"
+      ],
+      "time": null
+    },
+    {
+      "idx": 19,
+      "speaker_id": "S1",
+      "text": "Hey. This your student?",
+      "addressed_to": "group",
+      "tags": [
+        "handoff",
+        "third_party_attribution"
+      ],
+      "time": null
+    },
+    {
+      "idx": 20,
+      "speaker_id": "S3",
+      "text": "Yeah. I'm Katie. I'm a medical student.",
+      "addressed_to": "group",
+      "tags": [
+        "self_identification"
+      ],
+      "time": null
+    },
+    {
+      "idx": 21,
+      "speaker_id": "S3",
+      "text": "Hi. What brings you into the emergency department?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 22,
+      "speaker_id": "S2",
+      "text": "My chest hurts.",
+      "addressed_to": "S3",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 23,
+      "speaker_id": "S3",
+      "text": "Okay. What's your name?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 24,
+      "speaker_id": "S2",
+      "text": "I'm Katie. Is everyone's name Katie here? It's like the third person. Sorry about that. This place is ridiculous.",
+      "addressed_to": "group",
+      "tags": [
+        "content_hint",
+        "sarcasm",
+        "possible_name_collision"
+      ],
+      "time": null
+    },
+    {
+      "idx": 25,
+      "speaker_id": "S3",
+      "text": "So when did your pain start? Did you ask the person talking before, before I came in here?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info",
+        "prior_utterance_consistency"
+      ],
+      "time": null
+    },
+    {
+      "idx": 26,
+      "speaker_id": "S2",
+      "text": "Before you came in here? Because I told them this morning.",
+      "addressed_to": "S3",
+      "tags": [
+        "gives_history",
+        "prior_utterance_consistency"
+      ],
+      "time": null
+    },
+    {
+      "idx": 27,
+      "speaker_id": "S3",
+      "text": "Okay. This morning. What does the pain feel like to you?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 28,
+      "speaker_id": "S2",
+      "text": "Hurt. That's what it feels like.",
+      "addressed_to": "S3",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 29,
+      "speaker_id": "S3",
+      "text": "Okay. Where do you feel the pain?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 30,
+      "speaker_id": "S2",
+      "text": "Take a guess.",
+      "addressed_to": "S3",
+      "tags": [
+        "sarcasm"
+      ],
+      "time": null
+    },
+    {
+      "idx": 31,
+      "speaker_id": "S3",
+      "text": "I'm guessing in your chest?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 32,
+      "speaker_id": "S2",
+      "text": "Oh, you're a smart one.",
+      "addressed_to": "S3",
+      "tags": [
+        "sarcasm"
+      ],
+      "time": null
+    },
+    {
+      "idx": 33,
+      "speaker_id": "S3",
+      "text": "Okay. Does the pain go anywhere else?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 34,
+      "speaker_id": "S2",
+      "text": "No. My shoulder kind of hurts a little bit.",
+      "addressed_to": "S3",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 35,
+      "speaker_id": "S3",
+      "text": "Has this ever happened to you before?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 36,
+      "speaker_id": "S2",
+      "text": "No.",
+      "addressed_to": "S3",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 37,
+      "speaker_id": "S3",
+      "text": "Okay. What would you describe the pain as?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 38,
+      "speaker_id": "S2",
+      "text": "Pain in my chest. Sometimes in my shoulder a little bit.",
+      "addressed_to": "S3",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 39,
+      "speaker_id": "S3",
+      "text": "Is there any quality to it? Any sharp?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 40,
+      "speaker_id": "S2",
+      "text": "Hurts.",
+      "addressed_to": "S3",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 41,
+      "speaker_id": "S3",
+      "text": "How would you rate the pain? How would you rate the pain on a scale of zero to ten? So a zero would be no pain.",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 42,
+      "speaker_id": "S2",
+      "text": "Mm-hmm. Well, clearly it's not a zero. Maybe like a seven.",
+      "addressed_to": "S3",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 43,
+      "speaker_id": "S3",
+      "text": "Seven. Okay. Does anything make the pain worse?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 44,
+      "speaker_id": "S2",
+      "text": "If I could get a shirt after I leave here. I had to get this off the ground.",
+      "addressed_to": "group",
+      "tags": [
+        "request_item"
+      ],
+      "time": null
+    },
+    {
+      "idx": 45,
+      "speaker_id": "S3",
+      "text": "Okay. What did you say? Does anything make the pain worse?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info",
+        "clarification"
+      ],
+      "time": null
+    },
+    {
+      "idx": 46,
+      "speaker_id": "S2",
+      "text": "No. It kind of hurt a little bit more when I was walking. All them damn medicines you guys give me hurt too. I think that makes it worse more than like 65 pills a day.",
+      "addressed_to": "S3",
+      "tags": [
+        "medication",
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 47,
+      "speaker_id": "S3",
+      "text": "Okay. Anything make it better?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 48,
+      "speaker_id": "S2",
+      "text": "Not walking and not taking the pills. That makes sense because I said that made it worse. So not doing that make it better.",
+      "addressed_to": "S3",
+      "tags": [
+        "gives_history",
+        "medication"
+      ],
+      "time": null
+    },
+    {
+      "idx": 49,
+      "speaker_id": "S2",
+      "text": "Hey, you're going to be a great doctor someday.",
+      "addressed_to": "S3",
+      "tags": [
+        "compliment"
+      ],
+      "time": null
+    },
+    {
+      "idx": 50,
+      "speaker_id": "S3",
+      "text": "Thank you. Have you had any sweating, nausea, or vomiting with this pain?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 51,
+      "speaker_id": "S2",
+      "text": "I threw up like a year ago. I think that was because of some fish I ate.",
+      "addressed_to": "S3",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 52,
+      "speaker_id": "S3",
+      "text": "Okay. Do you have any other health problems there?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 53,
+      "speaker_id": "S2",
+      "text": "Well, they told me I got the sugars, whatever that is.",
+      "addressed_to": "S3",
+      "tags": [
+        "gives_history",
+        "unclear_role"
+      ],
+      "time": null
+    },
+    {
+      "idx": 54,
+      "speaker_id": "S3",
+      "text": "Diabetes?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info",
+        "content_hint"
+      ],
+      "time": null
+    },
+    {
+      "idx": 55,
+      "speaker_id": "S2",
+      "text": "I don't know. You're the doctor. I can tell my sugars is messed up. And then we got a little bit of high blood pressure. My cholesterol. It's too high or too low. I don't know. One or two. And my heart. Something about my heart. It's congested. It's got some kind of sludge up in there. I don't know. And my kidney. But I think that's because of the sugars.",
+      "addressed_to": "S3",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 56,
+      "speaker_id": "S3",
+      "text": "Okay. Do you smoke, drink, or do drugs?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info",
+        "substance"
+      ],
+      "time": null
+    },
+    {
+      "idx": 57,
+      "speaker_id": "S2",
+      "text": "All three, baby.",
+      "addressed_to": "S3",
+      "tags": [
+        "substance"
+      ],
+      "time": null
+    },
+    {
+      "idx": 58,
+      "speaker_id": "S3",
+      "text": "Okay. What kind of drugs do you do?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info",
+        "substance"
+      ],
+      "time": null
+    },
+    {
+      "idx": 59,
+      "speaker_id": "S2",
+      "text": "Well, marijuana every day. A little bit of cocaine every once in a while. And I sometimes get a little bit of heroin on the side. But it's a lot of marijuana.",
+      "addressed_to": "S3",
+      "tags": [
+        "substance"
+      ],
+      "time": null
+    },
+    {
+      "idx": 60,
+      "speaker_id": "S3",
+      "text": "Okay. When was the last time you did cocaine?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info",
+        "substance"
+      ],
+      "time": null
+    },
+    {
+      "idx": 61,
+      "speaker_id": "S2",
+      "text": "About half an hour. Half an hour ago.",
+      "addressed_to": "S3",
+      "tags": [
+        "substance"
+      ],
+      "time": null
+    },
+    {
+      "idx": 62,
+      "speaker_id": "S3",
+      "text": "When did you say you started feeling the pain?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 63,
+      "speaker_id": "S2",
+      "text": "This morning. A couple hours.",
+      "addressed_to": "S3",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 64,
+      "speaker_id": "S3",
+      "text": "Do you have any family history of heart problems?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info",
+        "family"
+      ],
+      "time": null
+    },
+    {
+      "idx": 65,
+      "speaker_id": "S2",
+      "text": "Yeah.",
+      "addressed_to": "S3",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 66,
+      "speaker_id": "S3",
+      "text": "Who has heart problems in your family?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info",
+        "family"
+      ],
+      "time": null
+    },
+    {
+      "idx": 67,
+      "speaker_id": "S2",
+      "text": "People. I don't know. They dead now.",
+      "addressed_to": "S3",
+      "tags": [
+        "gives_history",
+        "family"
+      ],
+      "time": null
+    },
+    {
+      "idx": 68,
+      "speaker_id": "S3",
+      "text": "Okay. Well, I'm going to go talk to the resident and we'll be back.",
+      "addressed_to": "group",
+      "tags": [
+        "handoff"
+      ],
+      "time": null
+    },
+    {
+      "idx": 69,
+      "speaker_id": "S2",
+      "text": "What's the resident? It's the doctor above you. Okay. Okay. I'll be back. Is that the last person I'm going to talk to? Are you going to talk to any more bosses and everything? You going to get the possible boss down here to me? Okay. Thank you.",
+      "addressed_to": "S3",
+      "tags": [
+        "ask_info",
+        "handoff",
+        "unclear_role"
+      ],
+      "time": null
+    },
+    {
+      "idx": 70,
+      "speaker_id": "S4",
+      "text": "Yeah. Hi, Mr. Smith. I'm going to need that stool from you.",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info",
+        "request_item"
+      ],
+      "time": null
+    },
+    {
+      "idx": 71,
+      "speaker_id": "S2",
+      "text": "Let me guess. Katie?",
+      "addressed_to": "group",
+      "tags": [
+        "sarcasm",
+        "possible_name_collision"
+      ],
+      "time": null
+    },
+    {
+      "idx": 72,
+      "speaker_id": "S4",
+      "text": "No. My name is Dr. Patel.",
+      "addressed_to": "S2",
+      "tags": [
+        "self_identification",
+        "title_form_of_address"
+      ],
+      "time": null
+    },
+    {
+      "idx": 73,
+      "speaker_id": "S2",
+      "text": "So you're an actual doctor now? Because about seven people came in here that ain't doctors.",
+      "addressed_to": "S4",
+      "tags": [
+        "content_hint",
+        "unclear_role"
+      ],
+      "time": null
+    },
+    {
+      "idx": 74,
+      "speaker_id": "S4",
+      "text": "Yeah. I'm a resident doctor.",
+      "addressed_to": "S2",
+      "tags": [
+        "self_identification"
+      ],
+      "time": null
+    },
+    {
+      "idx": 75,
+      "speaker_id": "S2",
+      "text": "Okay. I don't know what that means, but whatever. Can I talk to somebody who knows what they're doing?",
+      "addressed_to": "S4",
+      "tags": [
+        "request_info",
+        "unclear_role"
+      ],
+      "time": null
+    },
+    {
+      "idx": 76,
+      "speaker_id": "S4",
+      "text": "Well, you know, I do know what I'm doing. So let's get some questions answered and out of the way. Okay. Okay. All right. So what brings you to the ED today? Do you talk to the people that come in before?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 77,
+      "speaker_id": "S2",
+      "text": "I do. Chest pain. Like I told them.",
+      "addressed_to": "S4",
+      "tags": [
+        "gives_history",
+        "prior_utterance_consistency"
+      ],
+      "time": null
+    },
+    {
+      "idx": 78,
+      "speaker_id": "S4",
+      "text": "Okay. When did it start? And where does the pain move?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 79,
+      "speaker_id": "S2",
+      "text": "This morning. A couple hours. I smell it in the shoulder a little bit.",
+      "addressed_to": "S4",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 80,
+      "speaker_id": "S4",
+      "text": "Okay. Which one?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 81,
+      "speaker_id": "S2",
+      "text": "Left. Hey, you actually asked which shoulder that last person didn't even care.",
+      "addressed_to": "S4",
+      "tags": [
+        "gives_history",
+        "compliment"
+      ],
+      "time": null
+    },
+    {
+      "idx": 82,
+      "speaker_id": "S4",
+      "text": "All right. Could have been your shoulder that was hurting, but she didn't care. Okay. Well, let's keep going here. Has this ever happened to you before? Have you ever had any types of heart problems before?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 83,
+      "speaker_id": "S2",
+      "text": "No. I got congestion. I got some sludge in there.",
+      "addressed_to": "S4",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 84,
+      "speaker_id": "S4",
+      "text": "Okay. And how would you describe the pain? And on a scale of zero to ten, ten being the worst pain you've ever felt, how much pain are you?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 85,
+      "speaker_id": "S2",
+      "text": "Hurts. I told her some number down six. I don't know what I said. It hurts some.",
+      "addressed_to": "S4",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 86,
+      "speaker_id": "S4",
+      "text": "All right. And does anything make it worse?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 87,
+      "speaker_id": "S2",
+      "text": "Hurts when I take the medicines that you give me. I take 65 pills a day and when I move.",
+      "addressed_to": "S4",
+      "tags": [
+        "medication",
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 88,
+      "speaker_id": "S4",
+      "text": "Okay. Do you have any other heart problems or any other medical problems?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 89,
+      "speaker_id": "S2",
+      "text": "I got congestion. Like I said, and I told her I got sugars. My blood pressure is high. My cholesterol is either high or low. I don't know which one. Okay. And my kidney is jacked up because of the sugars.",
+      "addressed_to": "S4",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 90,
+      "speaker_id": "S4",
+      "text": "Okay. Do you smoke, drink, or any recreational drugs?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info",
+        "substance"
+      ],
+      "time": null
+    },
+    {
+      "idx": 91,
+      "speaker_id": "S2",
+      "text": "Yes. All of them. They're not recreational. They help me with my cataracts. Marijuana, that's for the cataracts. And then cocaine and I sprinkle in some heroin every once in a while when I'm feeling frisky.",
+      "addressed_to": "S4",
+      "tags": [
+        "substance"
+      ],
+      "time": null
+    },
+    {
+      "idx": 92,
+      "speaker_id": "S4",
+      "text": "Okay. And when was the last time you did some heroin? What about the cocaine?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info",
+        "substance"
+      ],
+      "time": null
+    },
+    {
+      "idx": 93,
+      "speaker_id": "S2",
+      "text": "Half an hour. Heroin? Oh. Yes. Yesterday. Half an hour ago. Like I told every other person that walked in this room. All right. But I like cocaine, okay? I mean, it is what it is. I like it. Okay. It makes me feel good.",
+      "addressed_to": "S4",
+      "tags": [
+        "substance"
+      ],
+      "time": null
+    },
+    {
+      "idx": 94,
+      "speaker_id": "S4",
+      "text": "All right. And do you have any family history of any heart problems?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info",
+        "family"
+      ],
+      "time": null
+    },
+    {
+      "idx": 95,
+      "speaker_id": "S2",
+      "text": "I wish I had some cocaine right now to help this chest pain.",
+      "addressed_to": "S4",
+      "tags": [
+        "substance",
+        "sarcasm"
+      ],
+      "time": null
+    },
+    {
+      "idx": 96,
+      "speaker_id": "S4",
+      "text": "What? I think it would have made your chest pain a little worse there, sir. No, I don't think you know what you're talking about. Well, go ahead. What was your question? Have you had... Sorry. Do you have any family history of heart problems?",
+      "addressed_to": "S2",
+      "tags": [
+        "clarification",
+        "ask_info"
+      ],
+      "time": null
+    },
+    {
+      "idx": 97,
+      "speaker_id": "S2",
+      "text": "Yes. People died of hard stuff. I don't know who, but they did, so it don't matter.",
+      "addressed_to": "S4",
+      "tags": [
+        "gives_history",
+        "family"
+      ],
+      "time": null
+    },
+    {
+      "idx": 98,
+      "speaker_id": "S4",
+      "text": "Do you know what age? Old. Old? Okay. All right. Well, there was one guy that was young, but he got shot in the heart, so I guess that counts as a heart problem. I don't know. Okay. All right. So I'm going to go talk to the attending doctor and we'll be back, okay?",
+      "addressed_to": "S2",
+      "tags": [
+        "handoff",
+        "family"
+      ],
+      "time": null
+    },
+    {
+      "idx": 99,
+      "speaker_id": "S2",
+      "text": "Can I get a shirt? I told everyone else I found a shirt when I came in. I lost my shirt last night in a fight. It might have had to do with cocaine. Can I get a new shirt?",
+      "addressed_to": "group",
+      "tags": [
+        "request_item",
+        "substance"
+      ],
+      "time": null
+    },
+    {
+      "idx": 100,
+      "speaker_id": "S4",
+      "text": "Okay. We'll talk to the social worker and see what we can do.",
+      "addressed_to": "S2",
+      "tags": [
+        "staff",
+        "disposition"
+      ],
+      "time": null
+    },
+    {
+      "idx": 101,
+      "speaker_id": "S2",
+      "text": "Another person. Wonderful.",
+      "addressed_to": "group",
+      "tags": [
+        "sarcasm"
+      ],
+      "time": null
+    },
+    {
+      "idx": 102,
+      "speaker_id": "S5",
+      "text": "Mr. Smith, I'm Dr. Burke. Jesus. How's it going today?",
+      "addressed_to": "S2",
+      "tags": [
+        "title_form_of_address",
+        "self_identification"
+      ],
+      "time": null
+    },
+    {
+      "idx": 103,
+      "speaker_id": "S2",
+      "text": "It hurts. My chest hurts. My chest.",
+      "addressed_to": "S5",
+      "tags": [
+        "gives_history"
+      ],
+      "time": null
+    },
+    {
+      "idx": 104,
+      "speaker_id": "S5",
+      "text": "When did it start? Anything make it better? Anything make it worse? Did you take your pills today? Did you take any drugs?",
+      "addressed_to": "S2",
+      "tags": [
+        "ask_info",
+        "medication",
+        "substance"
+      ],
+      "time": null
+    },
+    {
+      "idx": 105,
+      "speaker_id": "S2",
+      "text": "Did you not talk... This one. Not taking the 65 pills that I think that I've seen you once. You prescribed me a bunch of bull crap. Probably. And then... Not taking the pills and not moving around. No, because my chest hurts. Are you listening? They all weren't listening. People that were in here... Did you take any drugs? I told them. I think I've told you this before. Well, I might not have been doing heroin at the time. Anyway, marijuana, heroin, just on occasion, just a little sprinkle, when I'm feeling frisky. I got told them. And cocaine. I like cocaine. I like it. Okay. It makes you feel good.",
+      "addressed_to": "group",
+      "tags": [
+        "medication",
+        "substance",
+        "complaint",
+        "unclear_role"
+      ],
+      "time": null
+    },
+    {
+      "idx": 106,
+      "speaker_id": "S5",
+      "text": "Okay, that's fine. I'm going to talk to the resident and take care.",
+      "addressed_to": "group",
+      "tags": [
+        "handoff"
+      ],
+      "time": null
+    },
+    {
+      "idx": 107,
+      "speaker_id": "S2",
+      "text": "Thank you. You didn't ask me any stupid questions then. Can I get a shirt?",
+      "addressed_to": "S5",
+      "tags": [
+        "request_item",
+        "sarcasm"
+      ],
+      "time": null
+    },
+    {
+      "idx": 108,
+      "speaker_id": "S5",
+      "text": "Hi, Mr. Smith. Can I keep the stool this time? It helps my chest pain and keep my feet there.",
+      "addressed_to": "S2",
+      "tags": [
+        "request_item",
+        "unclear_role"
+      ],
+      "time": null
+    },
+    {
+      "idx": 109,
+      "speaker_id": "S5",
+      "text": "All right, all right. Okay, well, I just wanted to let you know that all your tests have come back normal. You have something called GERD, which is just...",
+      "addressed_to": "S2",
+      "tags": [
+        "disposition",
+        "diagnosis"
+      ],
+      "time": null
+    },
+    {
+      "idx": 110,
+      "speaker_id": "S2",
+      "text": "What the hell is that? What the hell is reflux? Did I say anything about windpipe? No.",
+      "addressed_to": "S5",
+      "tags": [
+        "ask_info",
+        "confusion"
+      ],
+      "time": null
+    },
+    {
+      "idx": 111,
+      "speaker_id": "S5",
+      "text": "It's just acid reflux into your... I said food pipe. Here's your discharge papers. You need to follow up with your primary care doctor. And here are your crackers.",
+      "addressed_to": "S2",
+      "tags": [
+        "disposition",
+        "education"
+      ],
+      "time": null
+    },
+    {
+      "idx": 112,
+      "speaker_id": "S2",
+      "text": "I got something I want in this damn hospital. All right, well, we'll see you later. Hey, I still need a shirt. What the hell is GERD? It's got crackers in it. It's a made-up junk in this damn hospital. I'm never coming back here again. Oh, wait. Can I get a shirt? Oh, yeah.",
+      "addressed_to": "group",
+      "tags": [
+        "disposition",
+        "request_item",
+        "complaint"
+      ],
+      "time": null
+    }
+  ]
+}

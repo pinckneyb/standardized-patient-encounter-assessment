@@ -154,15 +154,18 @@ Analyze the following {len(frames)} frames from {timestamp_range}:
                 } for frame_data in base64_frames
             ]
             
-            # Make API call using Responses API
-            response = self.client.responses.create(
-                model="gpt-4o-mini",
-                instructions=instructions,
-                input=[{
-                    "role": "user",
-                    "content": input_content
-                }],
-                store=True  # Enable stateful context for better performance
+            # Make API call using Responses API with retry logic
+            response = self._call_api_with_retry(
+                lambda: self.client.responses.create(
+                    model="gpt-4o-mini",
+                    instructions=instructions,
+                    input=[{
+                        "role": "user",
+                        "content": input_content
+                    }],
+                    store=True  # Enable stateful context for better performance
+                ),
+                operation_name="analyze_frames"
             )
             
             # Use the convenience property from Responses API
