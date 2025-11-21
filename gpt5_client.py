@@ -51,6 +51,62 @@ class GPT5Client:
         self.job_id = job_id
         self.video_filename = video_filename
     
+    def _call_api_with_retry(self, api_call_func, operation_name: str, max_retries: int = 3):
+        """
+        Call OpenAI API with exponential backoff retry logic for transient errors.
+        
+        Handles:
+        - 500 server errors (retry with backoff)
+        - 429 rate limit errors (retry with backoff)
+        - Network timeouts (retry with backoff)
+        
+        Args:
+            api_call_func: Lambda/function that makes the API call
+            operation_name: Name of the operation for logging
+            max_retries: Maximum number of retry attempts (default 3)
+            
+        Returns:
+            API response
+            
+        Raises:
+            Exception: If all retries are exhausted
+        """
+        import time
+        from openai import RateLimitError, InternalServerError
+        
+        for attempt in range(max_retries):
+            try:
+                return api_call_func()
+            
+            except (InternalServerError, RateLimitError) as e:
+                # Transient errors that should be retried
+                if attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) * 2  # Exponential backoff: 2s, 4s, 8s
+                    print(f"⚠️  {operation_name} failed (attempt {attempt + 1}/{max_retries}): {str(e)}")
+                    print(f"   Retrying in {wait_time} seconds...")
+                    self.error_logger.log_warning(
+                        f"{operation_name}_retry", self.job_id, self.video_filename,
+                        f"Retry attempt {attempt + 1}/{max_retries} after error: {str(e)}"
+                    )
+                    time.sleep(wait_time)
+                else:
+                    # Final attempt failed
+                    self.error_logger.log_error(
+                        operation_name, self.job_id, self.video_filename,
+                        f"All {max_retries} retry attempts exhausted: {str(e)}", e
+                    )
+                    raise
+            
+            except Exception as e:
+                # Non-retryable errors (invalid request, auth, etc.)
+                self.error_logger.log_error(
+                    operation_name, self.job_id, self.video_filename,
+                    f"Non-retryable error: {str(e)}", e
+                )
+                raise
+        
+        raise Exception(f"{operation_name} failed after {max_retries} retries")
+    
     def analyze_frames(self, frames: List[Dict], profile: Dict[str, Any], 
                       context_state: str = "") -> Tuple[str, List[Dict]]:
         """
