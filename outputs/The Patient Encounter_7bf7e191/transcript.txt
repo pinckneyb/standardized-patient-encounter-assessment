@@ -1,0 +1,162 @@
+Nurse (Katie): Hi, Mr. Smith.
+Nurse (Katie): How are you?
+Nurse (Katie): What's it look like?
+Nurse (Katie): My name's Katie. I'll be your nurse today.
+Nurse (Katie): Can I take your blood pressure?
+Patient (Katie): You have to.
+Patient (Katie): Can I get a shirt?
+Nurse (Katie): You doing okay?
+Patient (Katie): Yeah, but I need a new shirt.
+Nurse (Katie): Hold on just a minute.
+Patient (Katie): I got to be somewhere in an hour or so.
+Patient (Katie): Y'all need to hurry up.
+Nurse (Katie): Alright. Blood pressure looks okay.
+Nurse (Katie): So your chest started hurting this morning?
+Patient (Katie): That's what I said.
+Nurse (Katie): Alright. How bad's your pain right now?
+Patient (Katie): I don't know. It hurts.
+Nurse (Katie): Did you take anything?
+Patient (Katie): No. The doctor gave me some pills, but it won't work.
+Nurse (Katie): Alright. Well, I will go put your information into the computer real quick.
+Patient (Katie): I've been here before. It's already in there.
+Nurse (Katie): Alright. We'll find your information real quick.
+Nurse (Katie): So you've been here before? Was it for chest pain?
+Patient (Katie): No. No? You should probably know because you work here. I've been here a lot of times, so you should know why I'm here.
+Nurse (Katie): Alright. We'll take good care of you just like last time. Hope it's not like last time.
+Patient (Katie): Can I get some crackers?
+Nurse (Katie): We'll get you something.
+Nurse (Katie): Let me go talk to the doctors first and then we'll be right back, okay?
+Patient (Katie): Alright. Tell them to hurry up.
+Patient (Katie): Yeah.
+Unknown: Hey. This your student?
+Student (Katie): Yeah. I'm Katie. I'm a medical student.
+Student (Katie): Hi. What brings you into the emergency department?
+Patient (Katie): My chest hurts.
+Student (Katie): Okay. What's your name?
+Patient (Katie): I'm Katie.
+Patient (Katie): Is everyone's name Katie here? It's like the third person. Sorry about that. This place is ridiculous.
+Student (Katie): So when did your pain start?
+Patient (Katie): Did you ask the person talking before, before I came in here?
+Student (Katie): Before you came in here?
+Patient (Katie): Because I told them this morning.
+Student (Katie): Okay. This morning.
+Student (Katie): What does the pain feel like to you?
+Patient (Katie): Hurt. That's what it feels like.
+Student (Katie): Okay. Where do you feel the pain? Take a guess.
+Student (Katie): I'm guessing in your chest?
+Patient (Katie): Oh, you're a smart one.
+Student (Katie): Okay. Does the pain go anywhere else?
+Patient (Katie): No. My shoulder kind of hurts a little bit.
+Student (Katie): Has this ever happened to you before?
+Patient (Katie): No.
+Student (Katie): Okay. What would you describe the pain as?
+Patient (Katie): Pain in my chest. Sometimes in my shoulder a little bit.
+Student (Katie): Is there any quality to it? Any sharp?
+Patient (Katie): Hurts.
+Student (Katie): How would you rate the pain? Short, I guess. I've been stabbed before. It's not like that, but it's kind of short.
+Patient (Katie): How would you rate the pain on a scale of zero to ten? So a zero would be no pain.
+Student (Katie): Mm-hmm. Well, clearly it's not a zero. Maybe like a seven.
+Patient (Katie): Seven.
+Student (Katie): Okay. Does anything make the pain worse?
+Patient (Katie): If I could get a shirt after I leave here. I had to get this off the ground.
+Student (Katie): Okay. What did you say? Does anything make the pain worse?
+Patient (Katie): No. It kind of hurt a little bit more when I was walking. All them damn medicines you guys give me hurt too. I think that makes it worse more than like 65 pills a day.
+Student (Katie): Okay. Anything make it better?
+Patient (Katie): Not walking and not taking the pills.
+Student (Katie): That makes sense because I said that made it worse. So not doing that would make it better.
+Patient (Katie): Okay. Hey, you're going to be a great doctor someday.
+Student (Katie): Thank you.
+Student (Katie): Have you had any sweating, nausea, or vomiting with this pain?
+Patient (Katie): I threw up like a year ago. I think that was because of some fish I ate.
+Student (Katie): Okay. Do you have any other health problems there?
+Patient (Katie): Well, they told me I got the sugars, whatever that is.
+Student (Katie): Diabetes?
+Patient (Katie): I don't know. You're the doctor. I can tell my sugars is messed up. And then we got a little bit of high blood pressure, my cholesterol. It's too high or too low. I don't know. And my heart, some of my heart is congested. It's got some kind of sludge up in there. And my kidney. But I think that's because of the sugars.
+Student (Katie): Okay. Do you smoke, drink, or do drugs?
+Patient (Katie): All three, baby. All three.
+Student (Katie): What kind of drugs do you do?
+Patient (Katie): Well, marijuana every day. That's every day kind of thing. A little bit of cocaine every once in a while. And I sometimes get a little bit of heroin on the side. But it's a lot of marijuana.
+Student (Katie): Okay. When was the last time you did cocaine?
+Patient (Katie): About half an hour.
+Student (Katie): When did you say you started feeling the pain?
+Patient (Katie): This morning. For like a couple hours.
+Student (Katie): Do you have any family history of heart problems?
+Patient (Katie): Yeah.
+Student (Katie): Who has heart problems in your family?
+Patient (Katie): People. I don't know. They're dead now.
+Student (Katie): Okay. Well, I'm going to go talk to the resident and we'll be back, okay?
+Patient (Katie): What's the resident?
+Student (Katie): It's the doctor above you.
+Patient (Katie): Okay. Is that the last person I'm going to talk to? I'm going to go talk to any more bosses and everything and you can get the possible boss down here to me.
+Patient (Katie): Okay. Thank you. Yeah.
+Resident (Dr. Patel): Hi, Mr. Smith. I'm going to need that stool from you.
+Resident (Dr. Patel): Let me guess. Katie?
+Patient (Katie): No.
+Resident (Dr. Patel): My name is Dr. Patel.
+Patient (Katie): So you're an actual doctor now? Because about seven people came in here that ain't doctors.
+Resident (Dr. Patel): Yeah. I'm a resident doctor.
+Patient (Katie): Okay. I don't know what that means, but whatever.
+Resident (Dr. Patel): Okay. Well, it just means that I'm still in training. Can I talk to somebody who knows what they're doing? Well, you know, I do know what I'm doing. So let's get some questions answered and out of the way, okay?
+Patient (Katie): Okay. All right. So what brings you to the ED today?
+Patient (Katie): Do you talk to the people that come in before? I do. Chest pain.
+Resident (Dr. Patel): Okay. Like I told them. Okay. When did it start?
+Patient (Katie): This morning, like I told them.
+Resident (Dr. Patel): Okay. And where does the pain move?
+Patient (Katie): I smell it in the shoulder a little bit.
+Resident (Dr. Patel): Okay. Which one?
+Patient (Katie): Left.
+Patient (Katie): Hey, you actually asked which shoulder that last person didn't even care.
+Resident (Dr. Patel): All right. Could have been your shoulder that was hurting, but she didn't care. Okay. Well, let's keep going here. Has this ever happened to you before?
+Patient (Katie): No. No.
+Resident (Dr. Patel): Okay. Have you ever had any types of heart problems before?
+Patient (Katie): I got congestion. I got some sludge in there.
+Resident (Dr. Patel): Okay. And how would you describe the pain?
+Patient (Katie): Hurts.
+Resident (Dr. Patel): Okay. And on a scale of 0 to 10, 10 being the worst pain you've ever felt, how much pain are you in?
+Patient (Katie): I told her some number, dial 6. I don't know what I said. It hurts some.
+Resident (Dr. Patel): All right. And does anything make it worse? Let's see the questions.
+Patient (Katie): Hurts when I take the medicines that you give me. I take 65 pills a day and when I move.
+Resident (Dr. Patel): Okay. Do you have any other heart problems or any other medical problems?
+Patient (Katie): I got congestion. Like I said, and then I told her I got sugars. My blood pressure's high. My cholesterol's either high or low. I don't know which one. Okay. And my kidney's jacked up because of the sugars.
+Resident (Dr. Patel): Okay. Do you smoke, drink, or Yes, all of them.
+Patient (Katie): Recreational drugs? They're not recreational. They help me with my cataracts. Marijuana, that's for the cataracts.
+Patient (Katie): Okay. And then cocaine and I sprinkle in some heroin every once in a while when I'm feeling frisky. Okay.
+Resident (Dr. Patel): And when was the last time you did some heroin?
+Patient (Katie): Half an hour. Heroin? Oh. Yes. Yesterday.
+Resident (Dr. Patel): What about the cocaine?
+Patient (Katie): Half an hour ago. Like I told every other person that walked in this room.
+Resident (Dr. Patel): All right. But I like cocaine, okay? I mean, it is what it is. I like it. Okay. It makes me feel good. All right. And do you have any family history of any heart problems?
+Patient (Katie): You're asking for cocaine right now to help this chest pain. What? I think it would have made your chest pain a little worse there, sir.
+Patient (Katie): No, I don't think you know what you're talking about. Well, go ahead. What was your question? Have you had... Sorry. Do you have any family history of heart problems?
+Patient (Katie): Yes. People died of heart stuff. I don't know who, but they're dead, so it don't matter.
+Resident (Dr. Patel): Do you know what age?
+Patient (Katie): Old. Old?
+Resident (Dr. Patel): All right. Well, there was one guy that was young, but he got shot in the heart, so I guess that counts as a heart problem. I don't know. Okay. All right. So I'm going to go talk to the kidney doctor and we'll be back, okay?
+Patient (Katie): Can I get a shirt? I told everyone else I found this shirt when I came in. I lost my shirt last night in a fight. It might have had to do with cocaine. Can I get a new shirt? Okay. Can I get a new shirt?
+Resident (Dr. Patel): We'll talk to the social worker and see what we can do.
+Patient (Katie): Another person. How wonderful.
+Unknown (Dr. Burke): Yeah. Mr. Smith, I'm Dr. Burke.
+Patient (Katie): Jesus. How's it going today?
+Patient (Katie): It hurts.
+Unknown (Dr. Burke): What hurts?
+Patient (Katie): My chest.
+Unknown (Dr. Burke): When did it start?
+Patient (Katie): This morning.
+Unknown (Dr. Burke): All right. Anything make it better?
+Patient (Katie): Not taking the 65 pills that I think that I've seen you once. You prescribed me a bunch of bull crap. Probably.
+Unknown (Dr. Burke): And then? Anything make it worse? Not taking the pills and not moving around. Did you take your pills today?
+Patient (Katie): No, because my chest hurts. Are you listening? They all weren't listening. People that were in here. Did you take any drugs?
+Patient (Katie): I told them. I think I've told you this before, but I might not be doing heroin at the time. Anyway, marijuana, heroin, just on occasion, just a little sprinkle when I'm feeling frisky. I got told them. And cocaine. I like cocaine. It makes you feel good on the inside.
+Unknown (Dr. Burke): Okay. Okay. That's fine. I'm going to talk to the resident. Take care.
+Patient (Katie): Thank you. You can ask me stupid questions. Can I get a shirt?
+Patient (Katie): Yeah. Hi, Mr. Smith. Can I keep the stool this time? It helps my chest pain and keep my feet there.
+Nurse (Katie): All right. All right. Okay. Well, I just wanted to let you know that all your tests have come back normal.
+Unknown: You have something called GERD, which is just.
+Patient (Katie): The hell is that?
+Unknown: It's just acid reflux into your.
+Patient (Katie): The hell is reflux?
+Unknown: It's just acid coming back up your food pipe.
+Unknown: Okay. So. Did I say anything about windpipe? No. I said food pipe. Here's your discharge papers. You need to follow up with your primary care doctor. And here are your crackers.
+Patient (Katie): I got something I wanted in this damn hospital. All right. Well, we'll see you later.
+Patient (Katie): Hey, I still need a shirt.
+Patient (Katie): The hell is GERD? It's got crackers on it. It's a made up junk in this damn hospital. I'm never coming back here again. Oh, wait. Can I get a shirt? Oh, yeah.

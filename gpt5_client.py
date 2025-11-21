@@ -32,8 +32,8 @@ class GPT5Client:
         
         self.client = openai.OpenAI(
             api_key=self.api_key,
-            timeout=httpx.Timeout(timeout, connect=10.0),
-            max_retries=2  # Limit retries to prevent indefinite hanging
+            timeout=httpx.Timeout(timeout, connect=10.0, read=timeout, write=30.0),
+            max_retries=0  # Disable client-level retries - we handle retries explicitly
         )
         self.timeout = timeout
         
@@ -51,19 +51,19 @@ class GPT5Client:
         self.job_id = job_id
         self.video_filename = video_filename
     
-    def _call_api_with_retry(self, api_call_func, operation_name: str, max_retries: int = 3):
+    def _call_api_with_retry(self, api_call_func, operation_name: str, max_retries: int = 2):
         """
         Call OpenAI API with exponential backoff retry logic for transient errors.
         
         Handles:
         - 500 server errors (retry with backoff)
         - 429 rate limit errors (retry with backoff)
-        - Network timeouts (retry with backoff)
+        - Timeouts (retry once only)
         
         Args:
             api_call_func: Lambda/function that makes the API call
             operation_name: Name of the operation for logging
-            max_retries: Maximum number of retry attempts (default 3)
+            max_retries: Maximum number of retry attempts (default 2)
             
         Returns:
             API response
@@ -72,16 +72,31 @@ class GPT5Client:
             Exception: If all retries are exhausted
         """
         import time
-        from openai import RateLimitError, InternalServerError
+        from openai import RateLimitError, InternalServerError, APITimeoutError
+        
+        last_exception = None
         
         for attempt in range(max_retries):
             try:
                 return api_call_func()
             
+            except APITimeoutError as e:
+                # Timeout - only retry once
+                last_exception = e
+                if attempt < 1:  # Only retry first timeout
+                    wait_time = 5
+                    print(f"⏱️  {operation_name} timed out (attempt {attempt + 1}/{max_retries})")
+                    print(f"   Retrying once in {wait_time} seconds...")
+                    time.sleep(wait_time)
+                else:
+                    print(f"❌ {operation_name} timed out twice - skipping this batch")
+                    raise
+            
             except (InternalServerError, RateLimitError) as e:
                 # Transient errors that should be retried
+                last_exception = e
                 if attempt < max_retries - 1:
-                    wait_time = (2 ** attempt) * 2  # Exponential backoff: 2s, 4s, 8s
+                    wait_time = (2 ** attempt) * 2  # Exponential backoff: 2s, 4s
                     print(f"⚠️  {operation_name} failed (attempt {attempt + 1}/{max_retries}): {str(e)}")
                     print(f"   Retrying in {wait_time} seconds...")
                     self.error_logger.log_warning(
@@ -99,12 +114,16 @@ class GPT5Client:
             
             except Exception as e:
                 # Non-retryable errors (invalid request, auth, etc.)
+                last_exception = e
                 self.error_logger.log_error(
                     operation_name, self.job_id, self.video_filename,
                     f"Non-retryable error: {str(e)}", e
                 )
                 raise
         
+        # If we get here, all retries failed
+        if last_exception:
+            raise last_exception
         raise Exception(f"{operation_name} failed after {max_retries} retries")
     
     def analyze_frames(self, frames: List[Dict], profile: Dict[str, Any], 
