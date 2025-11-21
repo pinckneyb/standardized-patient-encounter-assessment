@@ -146,10 +146,11 @@ class AnalysisJobManager:
                             WHERE job_id = %s
                         """, (completed_batches, total_batches, completed_batches, total_batches, job_id))
                     else:
+                        # Cap progress at 100% even when total_batches is from previous estimate
                         cur.execute("""
                             UPDATE analysis_jobs 
                             SET completed_batches = %s,
-                                progress = ROUND((%s::float / total_batches) * 100), 
+                                progress = LEAST(100, ROUND((%s::float / total_batches) * 100)), 
                                 updated_at = CURRENT_TIMESTAMP
                             WHERE job_id = %s
                         """, (completed_batches, completed_batches, job_id))

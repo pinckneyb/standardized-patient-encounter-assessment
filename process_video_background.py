@@ -215,26 +215,37 @@ def process_video_job(job_id: str):
         
         audio_transcript = ""
         if audio_path:
-            # Phase 2: Transcribe audio
+            # Phase 2: Transcribe audio with timeout protection
             print("🗣️ Phase 2: Audio Transcription")
-            error_logger.log_stage_entry("audio_transcription", job_id, video_filename)
-            db.update_stage(job_id, 'transcribing_audio', progress_details="Transcribing audio using Whisper API")
-            audio_transcript = transcribe_audio_with_whisper(audio_path, api_key)
             
-            if not audio_transcript:
-                print("⚠️ No audio transcript available")
-                error_logger.log_warning("audio_transcription", job_id, video_filename,
-                                        "No audio transcript generated")
-            else:
-                db.save_audio_transcript(job_id, audio_transcript)
+            def transcribe_audio():
+                """Wrapper for audio transcription with proper stage updates."""
+                db.update_stage(job_id, 'transcribing_audio', progress_details="Transcribing audio using Whisper API")
+                transcript = transcribe_audio_with_whisper(audio_path, api_key)
+                
+                if not transcript:
+                    raise Exception("No audio transcript generated from Whisper API")
+                
+                db.save_audio_transcript(job_id, transcript)
                 db.update_stage(job_id, 'audio_transcribed', progress_details="Audio transcription completed")
                 
                 # Save transcript file
                 transcript_file = save_analysis_file(
-                    audio_transcript, 'transcript', video_filename, job_id
+                    transcript, 'transcript', video_filename, job_id
                 )
                 print(f"📄 Transcript saved: {transcript_file}")
-                error_logger.log_stage_exit("audio_transcription", job_id, video_filename, success=True)
+                return transcript
+            
+            # Execute with 8-minute timeout and heartbeat monitoring (allows for large audio files)
+            audio_transcript = run_stage_with_timeout(
+                stage_name='audio_transcription',
+                timeout_seconds=480,  # 8 minutes max (more than the 6-min Whisper timeout)
+                callable_func=transcribe_audio,
+                db=db,
+                job_id=job_id,
+                error_logger=error_logger,
+                video_filename=video_filename
+            )
         else:
             print("⚠️ No audio found in video (skipping transcription)")
             error_logger.log_warning("audio_extraction", job_id, video_filename,
