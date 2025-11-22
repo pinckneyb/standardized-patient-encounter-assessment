@@ -429,11 +429,24 @@ def process_video_job(job_id: str):
                                 batch_idx, narrative, events = future.result(timeout=180)
                                 completed_futures += 1
                             except TimeoutError as batch_timeout:
-                                error_logger.log_error("batch_processing", job_id, video_filename,
-                                                     f"Individual batch timeout after 180s", batch_timeout)
-                                db.mark_error(job_id, "Batch processing timeout - API call hung")
-                                print(f"❌ Batch timed out after 180 seconds")
-                                raise Exception("Batch API call timeout - OpenAI API not responding")
+                                # Get batch index from futures dict
+                                batch_i = futures.get(future, -1)
+                                failed_batch_idx = chunk_start + batch_i
+                                
+                                error_logger.log_warning("batch_processing", job_id, video_filename,
+                                                     f"Batch {failed_batch_idx+1} timeout after 180s - SKIPPING")
+                                print(f"⚠️  Batch {failed_batch_idx+1} timed out after 180 seconds - SKIPPING and continuing...")
+                                
+                                # Skip this batch and continue (don't fail the whole job)
+                                completed_futures += 1
+                                completed_batches += 1
+                                
+                                # Update progress
+                                if estimated_total_batches:
+                                    db.update_progress(job_id, completed_batches, estimated_total_batches)
+                                    db.update_heartbeat(job_id)
+                                
+                                continue  # Skip to next batch
                             
                             if narrative.startswith("Error during analysis"):
                                 error_logger.log_error("batch_processing", job_id, video_filename,
