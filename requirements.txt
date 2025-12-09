@@ -29,3 +29,5 @@ replit-object-storage
 # Note: FFmpeg system binary provided by Nix packages in .replit
 # All audio transcription and speaker diarization uses OpenAI APIs (Whisper-1, GPT-5 mini)
 # No local ML models (PyTorch, TensorFlow) required
+ffmpeg
+google-genai
