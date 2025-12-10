@@ -62,13 +62,12 @@ This application can run on **Autoscale** deployment (no longer requires Reserve
 - **PDF Generation**: ReportLab for professional reports (`pdf_generator.py`).
 
 ### Processing Pipeline (Flash 2.5)
-1. **Audio Extraction**: FFmpeg extracts audio track from video
-2. **Audio Transcription**: OpenAI Whisper-1 transcribes speech
-3. **Video Upload**: Video uploaded to Google servers
-4. **Video Analysis**: Flash 2.5 analyzes full video with audio context
-5. **Assessment Generation**: Flash 2.5 generates medical faculty assessment
-6. **PDF Generation**: ReportLab creates professional PDF report
-7. **Cloud Upload**: PDF uploaded to Replit Object Storage
+1. **Video Upload**: Video uploaded to Google servers
+2. **Audio Transcription**: Flash 2.5 transcribes with speaker diarization
+3. **Video Analysis**: Flash 2.5 analyzes full video with transcript context
+4. **Assessment Generation**: Flash 2.5 generates medical faculty assessment
+5. **PDF Generation**: ReportLab creates professional PDF report
+6. **Cloud Upload**: PDF uploaded to Replit Object Storage
 
 ### Analysis Profiles
 - **Medical Assessment**: Evaluates standardized patient encounters with rubric scoring
@@ -77,15 +76,10 @@ This application can run on **Autoscale** deployment (no longer requires Reserve
 ## External Dependencies
 
 ### AI Services
-- **Google Gemini Flash 2.5**: Direct video analysis (upload and analyze entire videos)
-- **OpenAI Whisper-1**: Audio transcription
+- **Google Gemini Flash 2.5**: Video analysis, audio transcription with speaker diarization
 
 ### Required API Keys
-- `GOOGLE_API_KEY`: For Flash 2.5 video analysis
-- `OPENAI_API_KEY`: For Whisper audio transcription
-
-### Audio Processing
-- **FFmpeg**: Audio extraction from video files
+- `GOOGLE_API_KEY`: For Flash 2.5 video analysis and transcription
 
 ### Web Framework and UI
 - **Streamlit**: Web application framework
@@ -97,7 +91,6 @@ This application can run on **Autoscale** deployment (no longer requires Reserve
 
 ### Python Dependencies
 - `google-genai`: Google Gemini API client
-- `openai`: OpenAI API client (Whisper)
 - `streamlit`: Web interface
 - `reportlab`: PDF generation
 - `psycopg2-binary`: PostgreSQL driver

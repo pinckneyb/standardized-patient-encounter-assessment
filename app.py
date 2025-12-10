@@ -439,20 +439,14 @@ def main():
         
         # API Key input - check environment variables
         google_api_key = os.getenv('GOOGLE_API_KEY', '')
-        openai_api_key = os.getenv('OPENAI_API_KEY', '')
         
-        if google_api_key and openai_api_key:
-            st.success("🔑 API keys loaded from secure storage")
-            st.caption("Google Flash 2.5 + OpenAI Whisper ready")
-            api_key = google_api_key  # For compatibility
-        elif google_api_key:
-            st.warning("⚠️ OpenAI API key missing (needed for audio transcription)")
+        if google_api_key:
+            st.success("🔑 Google API key loaded from secure storage")
+            st.caption("Flash 2.5: Video analysis + Diarized transcription")
             api_key = google_api_key
-        elif openai_api_key:
-            st.warning("⚠️ Google API key missing (needed for video analysis)")
-            api_key = None
         else:
-            st.error("❌ Both GOOGLE_API_KEY and OPENAI_API_KEY are required")
+            st.error("❌ GOOGLE_API_KEY is required")
+            st.caption("Flash 2.5 handles both video analysis and audio transcription")
             api_key = None
         
         # Profile selection

@@ -1,0 +1,73 @@
+**Clinical Narrative: Patient Encounter - Headache**
+
+**Setting and Context:**
+The encounter takes place in a standard outpatient examination room [00:00]. The room is brightly lit, with white walls and a dark wooden door with a window. Standard medical equipment, including a wall-mounted diagnostic station (otoscope/ophthalmoscope, blood pressure cuff), a wall clock, and a medical waste receptacle, is visible. The patient, Ms. Jones, is seated on the examination table, wearing a light blue patient gown over dark pants and boots. The medical student, Kelsey, is wearing a white lab coat over a red scrub top and dark pants, with a stethoscope around her neck.
+
+**Encounter Chronology & Clinical Skills Observed:**
+
+*   **Introduction and Rapport Building (00:00 - 00:17):**
+    *   The medical student knocks on the door and enters the room [00:03]. She greets the patient, introduces herself as Kelsey, a medical student working with the patient's physician, and asks permission to take a history and perform a brief physical exam [00:07].
+    *   She extends her hand for a handshake, establishing initial physical rapport [00:13]. The patient accepts, and they exchange pleasantries.
+    *   The student maintains good eye contact and a friendly, professional demeanor.
+
+*   **History Taking - Chief Complaint & HPI (00:17 - 01:27):**
+    *   The student sits on a stool opposite the patient, maintaining eye level, and asks an open-ended question: "What brings you in today?" [00:18].
+    *   She documents the patient's chief complaint of "headaches" [00:20].
+    *   The student systematically explores the history of present illness (HPI) using an OLDCARTS-like approach:
+        *   **Onset**: When the headaches started ("about two to three weeks ago") [00:26].
+        *   **Frequency**: How often they occur ("at least three times a week") [00:35].
+        *   **Timing**: When they are worse ("more in the evenings") [00:49].
+        *   **Associated factors**: Whether anything began two weeks ago that might be related ("No, not that I know of") [00:57].
+        *   **Character**: How they feel ("dull throb") [01:14].
+        *   **Location**: Where they are located ("kind of just like right here," gesturing to the forehead/temples) [01:22].
+        *   **Severity**: Rates pain on a 0-10 scale ("about five") [01:46].
+        *   **Impact**: Asks if it interferes with life ("Yeah, it is") [01:52].
+
+*   **History Taking - Aggravating/Alleviating Factors & ROS (01:57 - 06:17):**
+    *   **Aggravating Factors**: Inquires about what makes them worse (patient states stress from graduate school work) [02:00].
+    *   **Alleviating Factors**: Asks what makes them better (patient states "Excedrin Migraine") [02:20].
+    *   **Associated Symptoms**: Questions about nausea/vomiting, flashes of light/floaters, numbness/tingling, weakness, fevers/chills (all negative) [02:36 - 03:17].
+    *   **Progression**: Asks if symptoms are getting worse ("I do think in the last week or so they've gotten worse") [02:56].
+    *   **General Health / Social History**: Inquires about diet ("pretty healthy"), exercise ("hot yoga about three times a week"), recreational drugs, tobacco, alcohol, caffeine intake (one cup of coffee daily, no change in routine) [03:26 - 04:20]. The student humorously notes that it's not a "caffeine headache" [04:18]. Asks about current occupation ("graduate student") and marital status ("married, three years") [04:24 - 04:43].
+    *   **Past Medical History / Family History / Allergies**: Questions about current medical issues (asthma, inhaler not used in 6 months), past medical conditions (healthy growing up), drug allergies (Sulfa), past surgeries, hospitalizations (all negative except for grandfather's lung cancer related to smoking, which the student clarifies as not relevant to family history) [04:46 - 06:17].
+    *   The student maintains good eye contact, nods, and actively listens throughout the history taking, indicating engagement. She documents information on her clipboard.
+
+*   **Transition to Physical Exam (06:17 - 06:29):**
+    *   The student informs the patient about the transition to the physical exam [06:18].
+    *   She washes her hands (although this is not explicitly shown, the motion of reaching for the wall-mounted dispenser is seen, followed by a hand rub action) before initiating the physical exam. [06:27-06:30]
+
+*   **Physical Examination (06:29 - 10:27):**
+    *   **Cardiovascular Auscultation**: The student uses a stethoscope to listen to the patient's heart on the anterior chest, adjusting the gown appropriately [06:30 - 06:57].
+    *   **Pulmonary Auscultation**: The student listens to the patient's lungs on the posterior chest, instructing the patient on breathing [06:58 - 07:15].
+    *   **Cranial Nerves (CNs)**:
+        *   **CN II, III, IV, VI (Ocular motility)**: The student uses her finger to test extraocular movements, instructing the patient to follow with her eyes only [07:47].
+        *   **CN V (Facial Sensation)**: The student lightly touches the patient's face to check for equal sensation bilaterally [08:02].
+        *   **CN VII (Facial Symmetry)**: The student asks the patient to lift eyebrows, squeeze eyes shut (testing resistance), puff out cheeks (testing resistance) [08:10 - 08:21].
+        *   **CN IX, X (Palate/Pharynx)**: The student uses the otoscope head to visualize the patient's oral cavity and asks her to open her mouth and say "ah" [07:31].
+        *   **CN XI (Shoulder Shrug/Head Turn)**: The student tests shoulder shrug resistance and asks the patient to push her head against resistance [08:25 - 08:33].
+        *   **CN XII (Tongue Movement)**: The student asks the patient to stick out her tongue [08:22].
+    *   **Sinus Palpation**: The student palpates the frontal and maxillary sinuses, asking about pain (patient denies significant pain) [07:38].
+    *   **Deep Tendon Reflexes (DTRs)**: The student uses a reflex hammer to test the patient's biceps, triceps, patellar, and Achilles reflexes [08:37 - 09:27]. She asks the patient to uncross her legs for the patellar reflex.
+    *   **Motor Strength**: The student tests upper extremity strength (flexion/extension, abduction/adduction of arms) and lower extremity strength (flexion/extension of legs) against resistance [09:30 - 10:16]. She asks if the sensation is the same on both sides for each test.
+
+*   **Discussion of Findings and Plan (10:27 - 11:00):**
+    *   The student summarizes her initial assessment: "general stress headache" with "tight muscles" [10:39].
+    *   She offers osteopathic manipulative medicine (OMM) to loosen the muscles if the patient is interested [10:46]. The patient expresses interest.
+
+*   **Osteopathic Manipulative Treatment (OMT) - Suboccipital Release (11:00 - 13:26):**
+    *   The student instructs the patient to lay down on the exam table [11:00].
+    *   The student performs a suboccipital release technique, gently supporting the patient's head and applying soft tissue pressure to the suboccipital muscles. She instructs the patient to relax her head into her hands and then gently resists the patient's head turning "back to normal" and holds for 3 seconds, repeating three times [11:23 - 12:59].
+    *   The student assesses the muscle tension during and after the treatment ("your muscles are a little tight," "That feels a little bit better to me") [11:20, 13:04]. The patient confirms improvement ("Yeah, I can tell a difference, too. It feels better") [13:06].
+    *   The student then helps the patient sit back up [13:19].
+
+*   **Closing the Encounter (13:26 - 13:38):**
+    *   The student informs Ms. Jones that she will "go talk with the physician" and will "come back in with him" [13:28].
+    *   She suggests continuing Excedrin Migraine if it helps and notes that "heat might be really helpful" for muscle relaxation [11:58 - 12:06].
+    *   She asks if the patient has any other questions or concerns (patient denies) [13:33].
+    *   The student offers a handshake as she prepares to leave, reiterating "Very nice to meet you" [13:36].
+
+**Patient Interaction Quality:**
+The student's interaction with the patient is consistently professional, respectful, and patient-centered. She maintains good eye contact throughout the conversation and physical exam. Her tone of voice is calm and reassuring. She actively listens to the patient's concerns, confirming her understanding through verbal and non-verbal cues. The student's empathy is evident when she validates the patient's experience of headaches interfering with her life and offers a specific treatment option (OMM).
+
+**Technical Observations:**
+The student utilizes a clipboard for documentation. A stethoscope, otoscope/ophthalmoscope, and reflex hammer are used during the physical exam. The examination table is used for both the interview and the OMM. Vital signs were not observed being taken. Hand hygiene was attempted at the beginning of the physical exam.

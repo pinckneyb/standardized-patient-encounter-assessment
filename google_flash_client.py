@@ -62,6 +62,59 @@ class GoogleFlashClient:
         
         return self.uploaded_file.name
     
+    def transcribe_video(
+        self,
+        progress_callback: Optional[Callable[[str, int], None]] = None
+    ) -> str:
+        """
+        Transcribe audio from uploaded video with speaker diarization.
+        
+        Args:
+            progress_callback: Optional callback(status_message, progress_percent)
+            
+        Returns:
+            Diarized transcript with speaker labels and timestamps
+        """
+        if not self.uploaded_file:
+            raise ValueError("No video uploaded. Call upload_video first.")
+        
+        if progress_callback:
+            progress_callback("Transcribing audio with speaker diarization...", 20)
+        
+        print(f"🎤 Starting Flash 2.5 audio transcription with diarization...")
+        
+        prompt = """Transcribe all spoken audio from this video with speaker diarization.
+
+Requirements:
+1. Identify each distinct speaker (label as Speaker 1, Speaker 2, etc.)
+2. Include timestamps at the start of each speaker turn (format: [MM:SS])
+3. Transcribe speech verbatim - include filler words, hesitations
+4. Note any significant non-speech audio (e.g., [door opens], [coughing])
+5. If you can infer speaker roles from context (e.g., doctor vs patient based on their questions/answers), note this
+
+Output format:
+[00:00] Speaker 1 (appears to be medical student): "Hello, I'm here to see you today..."
+[00:05] Speaker 2 (appears to be patient): "Hi, thank you for coming..."
+
+Be thorough and accurate. This transcript will be used for medical education assessment."""
+
+        response = self.client.models.generate_content(
+            model=self.model,
+            contents=[
+                self.uploaded_file,
+                prompt
+            ]
+        )
+        
+        transcript = response.text
+        
+        if progress_callback:
+            progress_callback("Transcription complete", 35)
+        
+        print(f"✅ Transcription complete: {len(transcript)} characters")
+        
+        return transcript
+    
     def analyze_video(
         self,
         profile_type: str,

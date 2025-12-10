@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Flash 2.5 Video Processing Worker - Simplified background processor using Google Gemini Flash.
-Replaces the OpenAI frame-by-frame approach with native video ingestion via Flash 2.5.
+Uses Flash 2.5 for both transcription (with diarization) and video analysis.
+No need for separate audio extraction or Whisper API.
 
 Usage: python process_video_flash.py <job_id>
 """
@@ -47,23 +48,23 @@ def save_analysis_file(content: str, category: str, video_filename: str, job_id:
 
 def process_video_flash(job_id: str):
     """
-    Process a video analysis job using Google Flash 2.5 for video analysis.
+    Process a video analysis job using Google Flash 2.5.
+    
+    Flash 2.5 handles BOTH transcription and video analysis - no Whisper needed!
     
     Stages:
-    1. extracting_audio - Extract audio track from video
-    2. transcribing_audio - Transcribe audio using Whisper API
-    3. uploading_video - Upload video to Google for Flash 2.5 analysis
-    4. analyzing_video - Analyze video with Flash 2.5
-    5. generating_assessment - Generate medical assessment
-    6. generating_pdf - Create PDF report
-    7. completed - All done
+    1. uploading_video - Upload video to Google servers
+    2. transcribing - Transcribe audio with speaker diarization (Flash 2.5)
+    3. analyzing_video - Analyze video content (Flash 2.5)
+    4. generating_assessment - Generate medical assessment (Flash 2.5)
+    5. generating_pdf - Create PDF report
+    6. completed - All done
     
     Args:
         job_id: The analysis job ID to process
     """
     from db_manager import AnalysisJobManager
     from google_flash_client import GoogleFlashClient
-    from audio_utils import extract_audio_from_video, transcribe_audio_with_whisper
     from pdf_generator import create_assessment_pdf
     from storage_manager import StorageManager
     from utils.error_logger import get_error_logger
@@ -71,7 +72,6 @@ def process_video_flash(job_id: str):
     error_logger = get_error_logger()
     db = AnalysisJobManager()
     flash_client = None
-    audio_path = None
     
     job = db.get_job(job_id)
     if not job:
@@ -85,17 +85,11 @@ def process_video_flash(job_id: str):
     print(f"🚀 Starting Flash 2.5 processing for job {job_id}")
     print(f"   Video: {video_filename}")
     print(f"   Profile: {profile}")
+    print(f"   Engine: Google Gemini Flash 2.5 (transcription + analysis)")
     
     google_api_key = os.getenv('GOOGLE_API_KEY')
     if not google_api_key:
         error_msg = "GOOGLE_API_KEY not found in environment"
-        print(f"❌ {error_msg}")
-        db.mark_error(job_id, error_msg)
-        return
-    
-    openai_api_key = os.getenv('OPENAI_API_KEY')
-    if not openai_api_key:
-        error_msg = "OPENAI_API_KEY not found in environment (needed for Whisper transcription)"
         print(f"❌ {error_msg}")
         db.mark_error(job_id, error_msg)
         return
@@ -106,50 +100,10 @@ def process_video_flash(job_id: str):
         error_logger.log_stage_entry("flash_processing", job_id, video_filename)
         
         # ========================================
-        # Phase 1: Extract Audio
+        # Phase 1: Upload Video to Google
         # ========================================
         print("\n" + "="*60)
-        print("🎤 Phase 1: Audio Extraction")
-        print("="*60)
-        
-        db.update_stage(job_id, 'extracting_audio', 
-                       progress_details="Extracting audio track from video")
-        db.update_heartbeat(job_id)
-        
-        audio_path = extract_audio_from_video(video_path)
-        
-        # ========================================
-        # Phase 2: Transcribe Audio
-        # ========================================
-        audio_transcript = ""
-        if audio_path:
-            print("\n" + "="*60)
-            print("🗣️ Phase 2: Audio Transcription")
-            print("="*60)
-            
-            db.update_stage(job_id, 'transcribing_audio', 
-                           progress_details="Transcribing audio using Whisper API")
-            db.update_heartbeat(job_id)
-            
-            audio_transcript = transcribe_audio_with_whisper(audio_path, openai_api_key)
-            
-            if audio_transcript:
-                db.save_audio_transcript(job_id, audio_transcript)
-                
-                transcript_file = save_analysis_file(
-                    audio_transcript, 'transcript', video_filename, job_id
-                )
-                print(f"📄 Transcript saved: {transcript_file}")
-            else:
-                print("⚠️ No audio transcript generated")
-        else:
-            print("⚠️ No audio found in video (skipping transcription)")
-        
-        # ========================================
-        # Phase 3: Upload Video to Google
-        # ========================================
-        print("\n" + "="*60)
-        print("📤 Phase 3: Uploading Video to Google")
+        print("📤 Phase 1: Uploading Video to Google")
         print("="*60)
         
         db.update_stage(job_id, 'uploading_video', 
@@ -158,22 +112,51 @@ def process_video_flash(job_id: str):
         
         flash_client = GoogleFlashClient(api_key=google_api_key)
         
-        def progress_callback(message: str, percent: int):
+        def upload_callback(message: str, percent: int):
             db.update_stage(job_id, 'uploading_video', progress_details=message)
             db.update_heartbeat(job_id)
             print(f"   {message} ({percent}%)")
         
-        flash_client.upload_video(video_path, progress_callback=progress_callback)
+        flash_client.upload_video(video_path, progress_callback=upload_callback)
         
         # ========================================
-        # Phase 4: Analyze Video with Flash 2.5
+        # Phase 2: Transcribe with Diarization (Flash 2.5)
         # ========================================
         print("\n" + "="*60)
-        print("🤖 Phase 4: Analyzing Video with Flash 2.5")
+        print("🎤 Phase 2: Transcribing Audio with Speaker Diarization")
+        print("="*60)
+        
+        db.update_stage(job_id, 'transcribing', 
+                       progress_details="Transcribing audio with Flash 2.5 (includes speaker diarization)")
+        db.update_heartbeat(job_id)
+        
+        def transcribe_callback(message: str, percent: int):
+            db.update_stage(job_id, 'transcribing', progress_details=message)
+            db.update_heartbeat(job_id)
+            print(f"   {message} ({percent}%)")
+        
+        audio_transcript = flash_client.transcribe_video(progress_callback=transcribe_callback)
+        
+        if audio_transcript:
+            db.save_audio_transcript(job_id, audio_transcript)
+            
+            transcript_file = save_analysis_file(
+                audio_transcript, 'transcript', video_filename, job_id
+            )
+            print(f"📄 Diarized transcript saved: {transcript_file}")
+        else:
+            print("⚠️ No transcript generated (continuing with analysis)")
+            audio_transcript = ""
+        
+        # ========================================
+        # Phase 3: Analyze Video with Flash 2.5
+        # ========================================
+        print("\n" + "="*60)
+        print("🤖 Phase 3: Analyzing Video with Flash 2.5")
         print("="*60)
         
         db.update_stage(job_id, 'analyzing_video', 
-                       progress_details="Analyzing video with Flash 2.5 AI")
+                       progress_details="Analyzing video content with Flash 2.5")
         db.update_heartbeat(job_id)
         
         profile_key = "standardized_patient" if profile == "Medical Assessment" else "generic"
@@ -205,10 +188,10 @@ def process_video_flash(job_id: str):
             return
         
         # ========================================
-        # Phase 5: Generate Assessment
+        # Phase 4: Generate Assessment
         # ========================================
         print("\n" + "="*60)
-        print("📋 Phase 5: Generating Assessment")
+        print("📋 Phase 4: Generating Assessment")
         print("="*60)
         
         db.update_stage(job_id, 'generating_assessment', 
@@ -240,10 +223,10 @@ def process_video_flash(job_id: str):
             return
         
         # ========================================
-        # Phase 6: Generate PDF
+        # Phase 5: Generate PDF
         # ========================================
         print("\n" + "="*60)
-        print("📑 Phase 6: Generating PDF Report")
+        print("📑 Phase 5: Generating PDF Report")
         print("="*60)
         
         db.update_stage(job_id, 'generating_pdf', 
@@ -275,10 +258,10 @@ def process_video_flash(job_id: str):
             print(f"⚠️ PDF generation failed: {pdf_error} (continuing without PDF)")
         
         # ========================================
-        # Phase 7: Complete
+        # Phase 6: Complete
         # ========================================
         print("\n" + "="*60)
-        print("✅ Phase 7: Completing Job")
+        print("✅ Phase 6: Completing Job")
         print("="*60)
         
         db.update_stage(job_id, 'completed', status='completed',
@@ -309,13 +292,6 @@ def process_video_flash(job_id: str):
                 flash_client.cleanup()
             except Exception as cleanup_error:
                 print(f"⚠️ Flash client cleanup error: {cleanup_error}")
-        
-        if audio_path and os.path.exists(audio_path):
-            try:
-                os.remove(audio_path)
-                print(f"🗑️ Removed temporary audio: {audio_path}")
-            except Exception as e:
-                print(f"⚠️ Could not remove audio file: {e}")
         
         if video_path and os.path.exists(video_path):
             if video_path.startswith('temp_videos/') or '/temp_' in video_path:
