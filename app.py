@@ -437,26 +437,23 @@ def main():
     with st.sidebar:
         st.header("⚙️ Configuration")
         
-        # API Key input - check environment variable first
-        env_api_key = os.getenv('OPENAI_API_KEY', '')
+        # API Key input - check environment variables
+        google_api_key = os.getenv('GOOGLE_API_KEY', '')
+        openai_api_key = os.getenv('OPENAI_API_KEY', '')
         
-        if env_api_key:
-            st.success("🔑 API key loaded from secure storage")
-            api_key = env_api_key
-            # Show masked key for confirmation
-            st.text_input(
-                "OpenAI API Key",
-                value="sk-" + "*" * 20,
-                type="password",
-                disabled=True,
-                help="API key is securely stored and loaded automatically"
-            )
+        if google_api_key and openai_api_key:
+            st.success("🔑 API keys loaded from secure storage")
+            st.caption("Google Flash 2.5 + OpenAI Whisper ready")
+            api_key = google_api_key  # For compatibility
+        elif google_api_key:
+            st.warning("⚠️ OpenAI API key missing (needed for audio transcription)")
+            api_key = google_api_key
+        elif openai_api_key:
+            st.warning("⚠️ Google API key missing (needed for video analysis)")
+            api_key = None
         else:
-            api_key = st.text_input(
-                "OpenAI API Key",
-                type="password",
-                help="Enter your OpenAI API key for video analysis"
-            )
+            st.error("❌ Both GOOGLE_API_KEY and OPENAI_API_KEY are required")
+            api_key = None
         
         # Profile selection
         profile = st.selectbox(
@@ -465,24 +462,9 @@ def main():
             help="Choose the type of analysis to perform"
         )
         
-        # Processing settings
-        st.subheader("Processing Settings")
-        fps = st.slider("Frames per second", 0.5, 5.0, 1.0, 0.5)
-        batch_size = st.slider("Batch size", 3, 15, 3)
-        
-        resolution_options = {
-            "1080p (Full HD)": 1920,
-            "720p (HD)": 1280,
-            "480p (SD)": 854,
-            "360p (Low)": 640
-        }
-        resolution_choice = st.selectbox(
-            "Video Resolution",
-            list(resolution_options.keys()),
-            index=1,
-            help="Lower resolutions process faster and use less memory"
-        )
-        max_resolution = resolution_options[resolution_choice]
+        # Processing info
+        st.subheader("🤖 Processing Engine")
+        st.info("Using Google Flash 2.5 for direct video analysis. No frame extraction needed - faster and more accurate!")
         
     # Main content area
     st.header("📁 Video Input")
@@ -512,9 +494,9 @@ def main():
             
             # API key check
             if not api_key:
-                st.warning("⚠️ Please enter your OpenAI API key in the sidebar to start analysis")
+                st.warning("⚠️ Please configure API keys in the sidebar to start analysis")
             else:
-                st.success("🔑 API key configured")
+                st.success("🔑 API keys configured - Ready to analyze with Flash 2.5")
                 
                 # Analysis button
                 if st.button("🚀 Start Analysis", type="primary"):
@@ -541,8 +523,7 @@ def main():
                     with open(persistent_video_path, 'wb') as f:
                         f.write(uploaded_file.getvalue())
                     
-                    # Create job in database - note: create_job returns its own job_id, but we need to use ours
-                    # So we'll insert directly to ensure we use our generated job_id
+                    # Create job in database - using Flash 2.5 (no fps/batch_size needed)
                     try:
                         from db_manager import psycopg2
                         with db._get_connection() as conn:
@@ -552,7 +533,7 @@ def main():
                                     (job_id, video_filename, video_path, profile, fps, batch_size, 
                                      status, current_stage)
                                     VALUES (%s, %s, %s, %s, %s, %s, 'pending', 'created')
-                                """, (job_id, video_filename, str(persistent_video_path), profile, fps, batch_size))
+                                """, (job_id, video_filename, str(persistent_video_path), profile, 1.0, 5))
                                 conn.commit()
                     except Exception as e:
                         error_logger.log_error("job_creation", job_id, video_filename, 
@@ -561,12 +542,12 @@ def main():
                     
                     st.session_state.current_job_id = job_id
                     error_logger.log_info("job_creation", job_id, video_filename, 
-                                         f"Job created: profile={profile}, fps={fps}, batch_size={batch_size}, size={video_size:.1f}MB")
+                                         f"Job created: profile={profile}, engine=Flash 2.5, size={video_size:.1f}MB")
                     
-                    # Launch background processing thread (not subprocess - avoids Replit OOM killer)
+                    # Launch background processing thread using Flash 2.5
                     try:
                         import threading
-                        from process_video_background import process_video_job
+                        from process_video_flash import process_video_flash
                         
                         # Create process log file for debugging
                         log_dir = Path("process_logs")
@@ -583,10 +564,10 @@ def main():
                                 sys.stdout = log_f
                                 sys.stderr = log_f
                                 try:
-                                    print(f"🚀 Starting job {job_id} in background thread")
+                                    print(f"🚀 Starting Flash 2.5 job {job_id} in background thread")
                                     print(f"⏰ Start time: {datetime.now()}")
                                     print(f"{'='*60}\n")
-                                    process_video_job(job_id)
+                                    process_video_flash(job_id)
                                 finally:
                                     # Restore original stdout/stderr
                                     sys.stdout = old_stdout
