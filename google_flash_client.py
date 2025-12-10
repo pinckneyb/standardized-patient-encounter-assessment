@@ -276,32 +276,52 @@ AUDIO TRANSCRIPT (for reference - align visual observations with this):
         
         prompt = """You are a medical faculty member evaluating a standardized patient encounter.
 
-Based on the following observational narrative, generate a professional assessment report.
+Based on the following observational narrative, generate a professional assessment report in **JSON format**.
 
-## Assessment Format:
+CRITICAL: Your response MUST be valid JSON only. No markdown, no code blocks, just raw JSON.
 
-### 1. Executive Summary
-Brief overview of the encounter and overall performance (2-3 sentences)
+## Required JSON Structure:
 
-### 2. Strengths Observed
-List specific positive behaviors with evidence from the narrative
+{
+  "History Taking": {
+    "score": <number 1-5>,
+    "feedback": "<detailed feedback with specific evidence from the encounter>"
+  },
+  "Physical Examination": {
+    "score": <number 1-5>,
+    "feedback": "<detailed feedback - note if examination was performed or omitted>"
+  },
+  "Communication Skills": {
+    "score": <number 1-5>,
+    "feedback": "<detailed feedback on verbal/non-verbal communication, rapport building>"
+  },
+  "Clinical Reasoning": {
+    "score": <number 1-5>,
+    "feedback": "<detailed feedback on diagnostic thinking, differential diagnosis>"
+  },
+  "Professionalism": {
+    "score": <number 1-5>,
+    "feedback": "<detailed feedback on professional behavior, respect, ethics>"
+  },
+  "Patient Education and Closure": {
+    "score": <number 1-5>,
+    "feedback": "<detailed feedback on explaining diagnosis, treatment plan, follow-up>"
+  },
+  "Overall": "<comprehensive summary paragraph covering: Executive Summary, Key Strengths, Areas for Improvement, Specific Recommendations, and Final Assessment (Pass/Needs Review/Remediation Recommended). This should be 3-5 sentences providing actionable feedback.>"
+}
 
-### 3. Areas for Improvement
-List specific areas needing development with evidence
+## Scoring Scale:
+- 5 = Exceptional - Exceeds expectations in all aspects
+- 4 = Proficient - Meets all expectations with minor areas for growth  
+- 3 = Developing - Meets most expectations but needs improvement
+- 2 = Needs Improvement - Below expectations in key areas
+- 1 = Unsatisfactory - Significant deficits requiring remediation
 
-### 4. Clinical Skills Assessment
-Rate each area (Excellent/Good/Satisfactory/Needs Improvement):
-- **Communication**: [Rating] - Brief justification
-- **History Taking**: [Rating] - Brief justification  
-- **Physical Examination**: [Rating] - Brief justification (if applicable)
-- **Professionalism**: [Rating] - Brief justification
-- **Patient Safety**: [Rating] - Brief justification
-
-### 5. Specific Recommendations
-Actionable suggestions for improvement
-
-### 6. Overall Assessment
-Final summary with recommendation (Pass/Needs Review/Remediation Recommended)
+## Guidelines:
+- Be specific and cite evidence from the narrative
+- Provide constructive, actionable feedback
+- The "Overall" field should be comprehensive (not truncated)
+- Score fairly based on observable behaviors
 
 ---
 OBSERVATIONAL NARRATIVE:
