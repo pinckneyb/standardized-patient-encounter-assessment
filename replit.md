@@ -2,39 +2,52 @@
 
 ## Overview
 
-This AI Video Analysis application analyzes standardized patient encounters and surgical skills assessments in medical education. It automates a three-stage AI analysis workflow using OpenAI's Responses API with GPT-4o-mini for multimodal analysis. The system processes uploaded videos, performs streaming audio transcription and frame-by-frame visual analysis, and generates comprehensive medical faculty assessment reports, streamlining medical education evaluations.
+This AI Video Analysis application analyzes standardized patient encounters and surgical skills assessments in medical education. It uses **Google Gemini Flash 2.5** for direct video ingestion and analysis (no frame extraction needed), combined with OpenAI Whisper for audio transcription. The system generates comprehensive medical faculty assessment reports with professional PDF output.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
 
+## Architecture Change (December 2024)
+
+**Major Migration: OpenAI Frame-Based → Google Flash 2.5 Direct Video**
+
+Previous architecture (deprecated):
+- Extract frames from video at configurable FPS
+- Batch process frames with OpenAI GPT-4o-mini
+- Assemble frame analyses into narrative
+
+New architecture (current):
+- Upload video directly to Google Flash 2.5 API
+- Single API call for holistic video analysis
+- Much simpler, faster, and more accurate
+
+Key files changed:
+- `google_flash_client.py` - New client for Flash 2.5 video analysis
+- `process_video_flash.py` - Simplified background processor
+- `app.py` - Updated UI (removed fps/batch_size/resolution controls)
+
+Legacy files (kept for reference):
+- `gpt5_client.py` - Original OpenAI client
+- `process_video_background.py` - Original frame-based processor
+- `video_processor.py` - Frame extraction logic
+
 ## Deployment Requirements
 
-**CRITICAL: This application MUST be deployed as a Reserved VM, NOT run in development workspace.**
+This application can run on **Autoscale** deployment (no longer requires Reserved VM).
 
-### Why Reserved VM is Required
-- **Development workspaces** are designed for interactive coding and testing, NOT long-running compute tasks
-- Video processing jobs (10-15 minutes for a 13-minute video) get killed by workspace resource limits
-- Jobs will fail silently after ~3 minutes of processing in development mode
-
-### Reserved VM Benefits
-- ✅ **Dedicated computing resources** - No resource contention or kills
-- ✅ **99.9% uptime guarantee** - Jobs complete reliably
-- ✅ **No timeout limits** - Can process videos of any length
-- ✅ **Designed for compute-intensive tasks** - Exactly what this app does
+### Why Autoscale Works Now
+- Google Flash 2.5 handles video processing on their servers
+- No local frame extraction or heavy compute needed
+- Only audio transcription happens locally (quick)
 
 ### Storage Considerations
-- Reserved VMs have **ephemeral file storage** - files are lost on republish
-- ✅ **Persistent Storage Solution Implemented**:
-  - **PostgreSQL Database**: Stores all text data (transcripts, narratives, assessments)
-  - **Replit Object Storage**: Stores PDF reports persistently in cloud storage
-  - **Automatic Upload**: PDFs are uploaded to object storage after generation
-  - **Automatic Fallback**: App retrieves PDFs from cloud storage, falls back to local files
+- **PostgreSQL Database**: Stores all text data (transcripts, narratives, assessments)
+- **Replit Object Storage**: Stores PDF reports persistently in cloud storage
 - Temporary files (uploaded videos, audio files) are cleaned up after processing
-- Users can download PDF reports anytime - they persist across deployments
 
 ### Current Configuration
-- **Deployment Type**: Reserved VM (configured in .replit)
+- **Deployment Type**: Autoscale
 - **Run Command**: Streamlit on port 5000 with headless mode
 - **Database**: PostgreSQL (persistent across deployments)
 - **Storage**: Temporary files cleaned up after job completion
@@ -42,74 +55,50 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Core Application Structure
-- **Web Interface**: Streamlit-based application (`app.py`) for video upload, processing controls, and results display.
-- **Video Processing**: Utilizes FFmpeg as primary method for frame extraction, with OpenCV as optional fallback (`video_processor.py`). OpenCV uses lazy loading with retry logic for Reserved VM compatibility.
-- **AI Analysis Engine**: Employs a three-stage pipeline leveraging OpenAI's Responses API (`gpt5_client.py`).
-- **Profiles**: Supports "Medical Assessment" (default) and "Generic Video Narration" (`profiles.py`).
-- **Audio Processing**: Implements streaming transcription using OpenAI models (`utils.py`).
+- **Web Interface**: Streamlit-based application (`app.py`) for video upload, profile selection, and results display.
+- **Video Processing**: Google Flash 2.5 for direct video analysis (`google_flash_client.py`).
+- **Audio Processing**: OpenAI Whisper for transcription (`audio_utils.py`).
+- **Background Worker**: Simplified pipeline (`process_video_flash.py`).
+- **PDF Generation**: ReportLab for professional reports (`pdf_generator.py`).
 
-### Three-Stage AI Processing Pipeline
-1.  **Frame Analysis**: GPT-4o-mini analyzes video frames in batches with context-aware prompting to extract JSON descriptions.
-2.  **Narrative Synthesis**: GPT-4o-mini combines frame observations and audio transcript into clinical observational records using flat, undramatic language.
-3.  **Medical Assessment**: GPT-4o-mini generates medical faculty assessment reports, including color-coded rubric scoring and professional PDF output.
+### Processing Pipeline (Flash 2.5)
+1. **Audio Extraction**: FFmpeg extracts audio track from video
+2. **Audio Transcription**: OpenAI Whisper-1 transcribes speech
+3. **Video Upload**: Video uploaded to Google servers
+4. **Video Analysis**: Flash 2.5 analyzes full video with audio context
+5. **Assessment Generation**: Flash 2.5 generates medical faculty assessment
+6. **PDF Generation**: ReportLab creates professional PDF report
+7. **Cloud Upload**: PDF uploaded to Replit Object Storage
 
 ### Analysis Profiles
--   **Medical Assessment**: Evaluates standardized patient encounters with medical rubric scoring.
--   **Generic Video Narration**: Provides human-like narrative descriptions for general video content.
-
-### Processing Configuration
--   **Configurable Options**: Frame rate (0.5-5.0 FPS), batch sizes (3-15 frames), and video resolution (360p-1080p).
--   **Default Settings**: 1.0 FPS, 5 frames per batch, 720p resolution.
--   **Resolution Control**: Users can reduce video processing resolution for faster analysis and lower memory usage.
--   **Memory Optimization**: Frame analysis uses 15 concurrent workers (reduced from 50) to prevent OOM kills on Replit's memory-limited environment. This balances performance with reliability.
-
-### Audio Transcription System
--   **AI-Powered Speaker Diarization**: Uses GPT-5 mini with Responses API to perform evidence-based speaker identification with stable speaker IDs, role tracking, and explicit evidence citations.
--   **Sophisticated Role Assignment**: Supports multiple roles (patient, student, resident, attending, nurse, tech, staff, family, unknown) based on explicit textual evidence only.
--   **Clean Transcript Generation**: OpenAI Whisper-1 provides accurate transcription (6-minute timeout for large files), then GPT-5 mini adds sophisticated speaker labels with confidence tracking (5-minute timeout).
--   **FFmpeg Audio Extraction**: Extracts audio as 16kHz mono WAV for narrative synthesis.
-
-### API Architecture
--   **OpenAI Responses API**: Used for all analysis stages (frame, narrative, assessment, diarization) with `store=True` and `previous_response_id` for stateful context.
--   **Model**: GPT-4o-mini is employed for frame analysis, narrative, and assessment stages. GPT-5 mini is used for speaker diarization.
-
-### Advanced Features
--   **Context Continuity**: Sophisticated context management ensures narrative flow.
--   **Medical Rubric Scoring**: Automated faculty-style assessment with color-coded scoring.
--   **PDF Export**: Generates professional assessment reports.
--   **Memory-Efficient Streaming**: Processes long videos by yielding frames one at a time and capping resolution at 720p.
--   **Error Handling**: Robust system with timeout handling for OpenAI API calls and proper cleanup.
+- **Medical Assessment**: Evaluates standardized patient encounters with rubric scoring
+- **Generic Video Narration**: Provides general video analysis
 
 ## External Dependencies
 
 ### AI Services
--   **OpenAI Responses API**: For AI analysis (frame analysis, narrative generation, medical assessment, speaker diarization).
--   **OpenAI Transcription API**: Whisper-1 for streaming audio transcription.
--   **GPT-5 mini**: Fast, cost-efficient model for speaker diarization with evidence-based role assignment.
--   **GPT-4o-mini**: Used for frame analysis, narrative synthesis, and medical assessment generation.
+- **Google Gemini Flash 2.5**: Direct video analysis (upload and analyze entire videos)
+- **OpenAI Whisper-1**: Audio transcription
 
-### Video Processing
--   **FFmpeg**: Primary library for video frame and audio extraction (always used first).
--   **OpenCV (Headless)**: Optional fallback for video processing (uses `opencv-python-headless` with lazy loading and retry logic for Reserved VM compatibility).
--   **PIL/Pillow**: Used for image manipulation.
+### Required API Keys
+- `GOOGLE_API_KEY`: For Flash 2.5 video analysis
+- `OPENAI_API_KEY`: For Whisper audio transcription
 
 ### Audio Processing
--   **OpenAI Whisper-1**: For streaming audio transcription.
--   **GPT-5 mini**: For sophisticated speaker diarization with evidence tracking.
+- **FFmpeg**: Audio extraction from video files
 
 ### Web Framework and UI
--   **Streamlit**: Provides the web application framework.
--   **ReportLab**: Utilized for generating professional PDF assessment reports.
+- **Streamlit**: Web application framework
+- **ReportLab**: PDF report generation
 
 ### Storage and Persistence
--   **PostgreSQL**: Persistent storage for all job data, transcripts, narratives, and assessments.
--   **Replit Object Storage**: Cloud storage for PDF reports (persists across deployments).
+- **PostgreSQL**: Job data, transcripts, narratives, assessments
+- **Replit Object Storage**: PDF reports (persistent across deployments)
 
-### Data Processing
--   **NumPy**: For numerical computations.
--   **JSON**: Used for structured data storage.
-
-### File Handling
--   **Pathlib**: For file path operations.
--   **Base64**: For image encoding.
--   **Tempfile**: For secure handling of temporary files.
+### Python Dependencies
+- `google-genai`: Google Gemini API client
+- `openai`: OpenAI API client (Whisper)
+- `streamlit`: Web interface
+- `reportlab`: PDF generation
+- `psycopg2-binary`: PostgreSQL driver
+- `replit-object-storage`: Cloud storage client
